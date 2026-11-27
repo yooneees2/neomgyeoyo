@@ -482,6 +482,14 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 @media (max-width:480px){.ftile .ico{height:66px}.thumb{width:47px;height:66px}.libhd h2{font-size:24px}.libgrid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}.ftile svg{width:56px;height:46px}.ftile.new{min-height:120px}}
 #setSide{display:none;flex-direction:column;height:calc(100vh - 150px);min-height:460px;overflow:hidden;padding:14px 10px}
 #setSide h3{padding:0 6px}
+.setHd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:4px}
+#setAddMenu{margin:4px 4px 10px;border:1px solid var(--line2);border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,.1)}
+#setAddMenu button{display:block;width:100%;text-align:left;border:0;background:transparent;font:inherit;font-size:14px;padding:11px 14px;cursor:pointer}
+#setAddMenu button+button{border-top:1px solid var(--line2)}
+#setAddMenu button:hover{background:#f6f6f3}
+#setList li.addtile{aspect-ratio:210/110}
+#setList .addtile button{width:100%;height:100%;border:2px dashed var(--g4);border-radius:10px;background:transparent;font:inherit;font-size:14px;font-weight:600;color:#555;cursor:pointer}
+#setList .addtile button:hover{background:#f6f6f3;color:var(--ink)}
 #setList{list-style:none;margin:0;padding:4px 2px;overflow:auto;display:flex;flex-direction:column;gap:12px;flex:1}
 #setList li{position:relative;display:flex;align-items:center;gap:6px;flex:none}
 #setList .pg{position:relative;flex:1;min-width:0;display:block;padding:0;background:#fff;border:2px solid var(--line2);border-radius:6px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.08);aspect-ratio:210/297;cursor:pointer}
@@ -551,8 +559,10 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 <div id="keyHint" role="status">키를 바꾸고 싶으면 여기를 눌러요</div>
 <main>
   <aside id="setSide" class="card" aria-label="악보 순서" style="display:none">
-    <h3>악보 순서</h3>
-    <div class="keys" style="margin-bottom:8px">악보를 눌러 이동하고, 끌거나 ▲▼로 순서를 바꿔요</div>
+    <div class="setHd"><h3>악보 순서</h3><button type="button" class="btn sm" id="setAddBtn" aria-haspopup="true" aria-expanded="false">+ 악보 추가</button></div>
+    <div id="setAddMenu" role="menu" style="display:none"><button type="button" role="menuitem" id="setAddLib">악보함에서 고르기</button><button type="button" role="menuitem" id="setAddFile">내 파일·사진에서 넣기</button></div>
+    <input type="file" id="setFileIn" accept="application/pdf,image/*" multiple hidden>
+    <div class="keys" style="margin-bottom:8px">악보를 눌러 이동하고, 끌어서 순서를 바꿔요</div>
     <ol id="setList"></ol>
   </aside>
   <section>
@@ -918,7 +928,7 @@ async function render(){
 }
 function updatePager(){
   $('#pgNow').textContent=S.page;$('#pgAll').textContent=S.doc?S.doc.n:1;libSavePage();
-  if(S.doc&&S.doc.type==='set'){document.querySelectorAll('#setList li').forEach(li=>{const on=+li.dataset.i===S.page-1;li.classList.toggle('on',on);const g=li.querySelector('.pg');on?g.setAttribute('aria-current','true'):g.removeAttribute('aria-current');if(on)li.scrollIntoView({block:'nearest',inline:'nearest'})})}
+  if(S.doc&&S.doc.type==='set'){document.querySelectorAll('#setList li:not(.addtile)').forEach(li=>{const on=+li.dataset.i===S.page-1;li.classList.toggle('on',on);const g=li.querySelector('.pg');on?g.setAttribute('aria-current','true'):g.removeAttribute('aria-current');if(on)li.scrollIntoView({block:'nearest',inline:'nearest'})})}
   const pp=$('#pgPart'); if(S.doc&&S.doc.type==='set'){const P=curPart();pp.textContent=P.name+' · '+P.lp+'/'+P.n+'쪽';pp.style.display=''}else pp.style.display='none';
 }
 let rzT; window.addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(render,150)});
@@ -1556,6 +1566,7 @@ function renderSetList(focusSel){
       let to=i+(after?1:0); if(from<to)to--; reorderPage(from,to)};
     ol.appendChild(li); if(railIO)railIO.observe(li); else load(li);
   });
+  {const li=document.createElement('li'); li.className='addtile'; const b=document.createElement('button'); b.type='button'; b.textContent='+ 악보 추가'; b.onclick=()=>{toggleAddMenu(true);$('#setAddMenu').scrollIntoView({block:'nearest'})}; li.appendChild(b); ol.appendChild(li)}
   if(focusSel){const li=ol.querySelector('li[data-i="'+focusSel.i+'"]');if(li){const b=li.querySelector('.'+focusSel.k);(b&&!b.disabled?b:li.querySelector('.pg')).focus()}}
   else{const on=ol.querySelector('li.on');if(on)on.scrollIntoView({block:'nearest',inline:'nearest'})}
 }
@@ -1785,7 +1796,7 @@ async function renderLib(){
   $('#libBack').style.display=root?'none':''; $('#libTools').style.display=root?'':'none';
   $('#libTitle').textContent=root?'내 악보함':S.libView;
   $('#libSelBtn').textContent=S.libSelMode?'선택 취소':'선택';
-  const nSc=selIds(items).length, pbtn=$('#libPlay'); pbtn.style.display=S.libSelMode&&nSc?'':'none'; pbtn.textContent='순서대로 보기 ('+nSc+')';
+  const nSc=selIds(items).length, pbtn=$('#libPlay'); pbtn.style.display=S.libSelMode&&nSc?'':'none'; pbtn.textContent=(S.libAdd?'맨 뒤에 추가 (':'순서대로 보기 (')+nSc+')';
   const dbtn=$('#libDelFolder'); dbtn.style.display=S.libSelMode&&S.libSel.size?'':'none'; dbtn.textContent='삭제 ('+S.libSel.size+')';
   $('#libHint').textContent=S.libSelMode?'폴더나 악보를 누르는 순서대로 이어서 볼 수 있어요(악보에는 번호가 붙어요). "순서대로 보기"를 누르면 그 순서로 이어서 볼 수 있어요. 지우려면 폴더나 악보를 골라 "삭제"를 누르세요 (폴더를 지워도 안의 악보는 남아요).'
     :root?'악보 파일(PDF·이미지)을 이 창에 끌어다 놓으면 악보함에 담겨요. 폴더 위에 놓으면 그 폴더로 들어가고, 악보를 폴더로 끌어 넣어도 돼요.'
@@ -1884,10 +1895,8 @@ function selIds(items){ // 고른 순서대로 악보 id 목록 (폴더를 고�
   for(const k of S.libSel){ if(k[0]==='s')add(k.slice(2)); else if(k[0]==='f'){const f=k.slice(2); items.filter(x=>x.folder===f).forEach(x=>add(x.id))} }
   return ids;
 }
-async function openSet(){ // 고른 순서대로 한 권처럼 이어서 보기
-  let all=[]; try{all=(await libAll()).filter(libOK).sort((a,b)=>(b.openedAt||b.addedAt||0)-(a.openedAt||a.addedAt||0))}catch(e){}
-  const ids=selIds(all); if(!ids.length){toast('이 선택에는 악보가 없어요');return}
-  const parts=[]; let skipped=0, single=null; toast('악보 불러오는 중…');
+async function loadSetParts(ids){ // 악보함 id 목록 → 이어보기용 악보 조각들
+  const parts=[]; let skipped=0;
   try{
     for(const id of ids){
       const it=await libGet(id), files=it?libRescue(it):[]; if(!files.length){skipped++;continue}
@@ -1895,14 +1904,45 @@ async function openSet(){ // 고른 순서대로 한 권처럼 이어서 보기
       if(isPdf){if(!window.pdfjsLib)throw new Error('pdfjs');const pd=await pdfjsLib.getDocument({data:await files[0].arrayBuffer()}).promise;parts.push({id:it.id,name:nm,kind:'pdf',pdf:pd,n:pd.numPages,files})}
       else{const els=await Promise.all(files.map(loadImg));parts.push({id:it.id,name:nm,kind:'img',imgs:els,n:els.length,files})}
     }
-  }catch(e){console.error(e);toast('악보를 불러오지 못했어요. 인터넷 연결을 확인해 주세요');return}
+  }catch(e){console.error(e);toast('악보를 불러오지 못했어요. 인터넷 연결을 확인해 주세요');return null}
+  return {parts,skipped};
+}
+async function openSet(){ // 고른 순서대로 한 권처럼 이어서 보기 (이어보기 중 '추가'로 열었으면 뒤에 붙여요)
+  let all=[]; try{all=(await libAll()).filter(libOK).sort((a,b)=>(b.openedAt||b.addedAt||0)-(a.openedAt||a.addedAt||0))}catch(e){}
+  const ids=selIds(all); if(!ids.length){toast('이 선택에는 악보가 없어요');return}
+  const adding=!!S.libAdd; toast('악보 불러오는 중…');
+  const ld=await loadSetParts(ids); if(!ld)return; const {parts,skipped}=ld;
   if(!parts.length){toast('열 수 있는 악보가 없어요');return}
-  S.libSelMode=false; S.libSel.clear(); $('#libModal').style.display='none';
+  S.libSelMode=false; S.libSel.clear(); S.libAdd=false; closeLib();
+  if(adding&&S.doc&&S.doc.type==='set'){addToSet(parts);return}
   if(parts.length===1){openFiles(parts[0].files);return}
   const seq=[]; parts.forEach((q,pi)=>{for(let lp=1;lp<=q.n;lp++)seq.push({pi,lp})});
   S.doc={type:'set',parts,seq,n:seq.length}; railCache.clear(); S.docId='set:'+parts.map(p=>p.id).join('|'); S.docName=parts[0].name+' 외 '+(parts.length-1)+'곡'; S.libId=null; S.page=1;
   afterOpen(); toast(parts.length+'개 악보를 순서대로 열었어요'+(skipped?' ('+skipped+'개는 파일이 없어 뺐어요)':''),3200);
 }
+function addToSet(parts){ // 보고 있는 이어보기 맨 뒤에 악보를 붙여요
+  const d=S.doc; if(!d||d.type!=='set'||!parts.length)return;
+  parts.forEach(q=>{const pi=d.parts.push(q)-1; for(let lp=1;lp<=q.n;lp++)d.seq.push({pi,lp})});
+  d.n=d.seq.length; S.docId='set:'+d.parts.map(p=>p.id).join('|'); S.docName=d.parts[0].name+' 외 '+(d.parts.length-1)+'곡';
+  toggleAddMenu(false); updatePager(); renderSetList(); toast(parts.length+'개 악보를 맨 뒤에 넣었어요 (총 '+d.n+'쪽)',2800);
+}
+async function partsFromFiles(fl){ // 내 파일·사진 → 이어보기 조각
+  const files=[...fl], pdfs=files.filter(f=>/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)),
+    imgs=files.filter(f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name)).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  const parts=[];
+  try{
+    if(pdfs.length&&!window.pdfjsLib){toast('PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요');return parts}
+    for(const f of pdfs){const pd=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;parts.push({id:'pdf:'+fp(f)+':'+pd.numPages,name:baseName(f.name),kind:'pdf',pdf:pd,n:pd.numPages,files:[f]})}
+    if(imgs.length){const els=await Promise.all(imgs.map(loadImg));parts.push({id:'img:'+imgs.map(fp).join(',')+':'+imgs.length,name:baseName(imgs[0].name)+(imgs.length>1?' 외 '+(imgs.length-1)+'장':''),kind:'img',imgs:els,n:els.length,files:imgs})}
+  }catch(e){console.error(e);toast('악보를 읽지 못했어요. PDF나 JPG·PNG 파일인지 확인해 주세요');return []}
+  if(!parts.length)toast('PDF나 이미지(JPG·PNG) 파일을 올려 주세요');
+  return parts;
+}
+function toggleAddMenu(on){const m=$('#setAddMenu'),show=on===undefined?m.style.display==='none':on; m.style.display=show?'block':'none'; $('#setAddBtn').setAttribute('aria-expanded',show)}
+$('#setAddBtn').onclick=()=>toggleAddMenu();
+$('#setAddLib').onclick=()=>{toggleAddMenu(false);S.libAdd=true;openLib();toggleSelMode()};
+$('#setAddFile').onclick=()=>{toggleAddMenu(false);$('#setFileIn').click()};
+$('#setFileIn').onchange=async e=>{const fl=[...e.target.files]; e.target.value=''; if(!fl.length)return; toast('악보 불러오는 중…'); const parts=await partsFromFiles(fl); if(parts.length)addToSet(parts); libAddFiles(fl,'').catch(()=>{})};
 function toggleSelMode(){S.libSelMode=!S.libSelMode;S.libSel.clear();renderLib()}
 async function delSelected(){
   const fs=[...S.libSel].filter(k=>k[0]==='f').map(k=>k.slice(2)), ss=[...S.libSel].filter(k=>k[0]==='s').map(k=>k.slice(2));
@@ -1914,7 +1954,7 @@ async function delSelected(){
   S.libSel.clear(); S.libSelMode=false; renderLib(); refreshResume(); toast(what+'를 지웠어요');
 }
 function openLib(){S.libView=null;S.libSelMode=false;S.libSel.clear();$('#libSearch').value='';$('#libModal').style.display='flex';document.querySelector('.hnav').classList.add('libopen');renderLib();$('#libClose').focus()}
-function closeLib(){$('#libModal').style.display='none';document.querySelector('.hnav').classList.remove('libopen');refreshResume()}
+function closeLib(){S.libAdd=false;$('#libModal').style.display='none';document.querySelector('.hnav').classList.remove('libopen');refreshResume()}
 function openFolderDlg(){fdPick='gray';renderFdColors();$('#fdName').value='';$('#fdErr').textContent='';$('#folderDlg').style.display='flex';$('#fdName').focus()}
 function closeFolderDlg(){$('#folderDlg').style.display='none';const a=$('#libAdd');if(a)a.focus()}
 function addFolder(){
