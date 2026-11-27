@@ -2435,7 +2435,7 @@ let pdCur=null,pdFrom=null,pdBusy=false;
 const OS_RAW='https://raw.githubusercontent.com/OpenScore/Lieder/', OS_PIANO='https://raw.githubusercontent.com/musetrainer/library/', VRV_URL='https://cdn.jsdelivr.net/npm/verovio@6.4.1/dist/verovio-toolkit-wasm.js';
 function osLoad(){
   if(OS.cat)return Promise.resolve(OS.cat);
-  return OS.load||(OS.load=fetch('openscore-lieder.json').then(r=>{if(!r.ok)throw new Error('http '+r.status);return r.json()}).then(d=>{
+  return OS.load||(OS.load=fetch('openscore-lieder.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error('http '+r.status);return r.json()}).then(d=>{
     OS.cat=d; const enc=p=>p.split('/').map(encodeURIComponent).join('/');
     const pi=(d.p||[]).map(x=>({kind:'p',title:x[0],en:x[1],comp:x[2],ko:x[3],easy:!!x[5],set:'',path:'p/'+x[4],url:OS_PIANO+d.pv+'/scores/'+encodeURIComponent(x[4]),h:pdFold([x[0],x[1],x[2],x[3],x[5]?'easy 쉬운 초보':''].join(' ')),t:pdFold(x[0]+' '+x[1])}));
     const li=d.s.map(x=>{const c=d.c[x[0]]; return {kind:'l',title:x[2].replace(/^\d+\s+/,''),set:x[1],comp:c[0],ko:c[1],path:x[3],url:OS_RAW+d.v+'/scores/'+enc(x[3]),h:pdFold([c[0],c[1],x[1],x[2]].join(' ')),t:pdFold(x[2].replace(/^\d+\s+/,''))}});
