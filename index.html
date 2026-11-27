@@ -488,6 +488,16 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 .thumb{width:57px;height:80px;border-radius:5px;border:1px solid var(--line2);background:#fff;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;color:var(--g3);font-size:11px;font-weight:700}
 .thumb img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;pointer-events:none}
 .ftile.score.dragging{opacity:.4}
+.fdot{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--line2);background:#fff;display:grid;place-items:center;padding:0;cursor:pointer}
+.fdot i{display:block;width:16px;height:16px;border-radius:50%;background:var(--dot,#b4b4b0)}
+.fdot:hover{background:var(--g1)}
+.ftile .fcolor{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid var(--line2);display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .15s}
+.ftile:hover .fcolor,.ftile:focus-within .fcolor,.ftile .fcolor:focus-visible{opacity:1}
+@media (hover:none){.ftile .fcolor{opacity:1}}
+.fcolor i{display:block;width:14px;height:14px;border-radius:50%;background:var(--dot,#b4b4b0)}
+#cpop{position:fixed;z-index:200;background:#fff;border:1px solid var(--line2);border-radius:16px;padding:10px 12px;box-shadow:0 10px 28px rgba(0,0,0,.18);display:flex;gap:8px;animation:hin .2s var(--ease) backwards}
+#cpop button{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line2);cursor:pointer;padding:0}
+#cpop button[aria-checked=true]{box-shadow:0 0 0 2px var(--ink)}
 .ftile .more{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid var(--line2);font-size:16px;line-height:1;padding:0;color:var(--ink)}
 .ftile .more:hover{background:var(--g1)}
 .smenu{position:absolute;z-index:8;top:36px;right:6px;display:flex;flex-direction:column;gap:6px;min-width:150px;background:#fff;border:1px solid var(--line2);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.22);text-align:left}
@@ -732,7 +742,7 @@ input.rentitle{font:inherit;font-family:var(--disp);font-size:inherit;border:0;b
 <div id="libModal" role="dialog" aria-modal="true" aria-labelledby="libTitle">
   <div class="mbox libbox">
     <div class="libhd">
-      <div class="libtitle"><button class="btn sm" id="libBack" type="button" style="display:none">← 내 악보함</button><h2 id="libTitle">내 악보함</h2></div>
+      <div class="libtitle"><button class="btn sm" id="libBack" type="button" style="display:none">← 내 악보함</button><h2 id="libTitle">내 악보함</h2><button type="button" id="libColorBtn" class="fdot" style="display:none" aria-label="폴더 색상 바꾸기" title="폴더 색상 바꾸기"><i></i></button></div>
       <div class="libhdr"><button class="btn sm pink" id="libPlay" type="button" style="display:none">순서대로 보기</button><button class="btn sm" id="libDelFolder" type="button" style="display:none">삭제</button><button class="btn sm" id="libSelBtn" type="button">선택</button><button class="btn sm" id="libClose" type="button">닫기</button></div>
     </div>
     <div class="libtools" id="libTools"><input id="libSearch" type="search" placeholder="폴더 검색" aria-label="폴더 검색" autocomplete="off"></div>
@@ -1819,9 +1829,21 @@ function renderFdColors(){
   const box=$('#fdColors'); box.innerHTML='';
   FCOL.forEach(c=>{const b=document.createElement('button');b.type='button';b.style.background=c[2];b.title=c[1];b.setAttribute('role','radio');b.setAttribute('aria-label',c[1]);b.setAttribute('aria-checked',c[0]===fdPick);b.onclick=()=>{fdPick=c[0];renderFdColors();$('#fdName').focus()};box.appendChild(b)});
 }
+function setFolderColor(name,key){const cm=fColors(); if(key==='gray')delete cm[name]; else cm[name]=key; store.set('nm-folder-colors',cm)}
+function closeCPop(){const o=$('#cpop'); if(o)o.remove(); document.removeEventListener('pointerdown',cpOut,true); document.removeEventListener('keydown',cpKey,true)}
+const cpOut=e=>{const o=$('#cpop'); if(o&&!o.contains(e.target))closeCPop()};
+const cpKey=e=>{if(e.key==='Escape'){e.stopPropagation();closeCPop()}};
+function colorPop(anchor,name){
+  closeCPop(); const cur=fColorOf(name)[0], o=document.createElement('div'); o.id='cpop'; o.setAttribute('role','radiogroup'); o.setAttribute('aria-label','폴더 색상');
+  FCOL.forEach(c=>{const b=document.createElement('button'); b.type='button'; b.style.background=c[2]; b.title=c[1]; b.setAttribute('role','radio'); b.setAttribute('aria-label',c[1]); b.setAttribute('aria-checked',c[0]===cur); b.onclick=e=>{e.stopPropagation();setFolderColor(name,c[0]);closeCPop();renderLib()}; o.appendChild(b)});
+  document.body.appendChild(o); const r=anchor.getBoundingClientRect(); o.style.top=Math.min(r.bottom+8,innerHeight-o.offsetHeight-8)+'px'; o.style.left=Math.max(8,Math.min(r.left,innerWidth-o.offsetWidth-8))+'px';
+  setTimeout(()=>{document.addEventListener('pointerdown',cpOut,true);document.addEventListener('keydown',cpKey,true)},0); const f=o.querySelector('[aria-checked=true]'); if(f)f.focus();
+}
 function folderTile(label,count){
   const b=document.createElement('button'); b.type='button'; b.className='ftile'; b.dataset.folder=label; b.innerHTML='<span class="ico">'+FOLDER_SVG+'</span>'; {const fc=fColorOf(label); if(fc[0]!=='gray'){b.style.setProperty('--fb',fc[2]);b.style.setProperty('--ff',fc[3])}}
-  b.append(el('b',null,label),el('small',null,count+'개')); b.setAttribute('aria-label','폴더 '+label+', 악보 '+count+'개');
+  b.append(el('b',null,label),el('small',null,count+'개'));
+  if(!S.libSelMode){const fc=document.createElement('span'); fc.className='fcolor'; fc.setAttribute('role','button'); fc.tabIndex=0; fc.setAttribute('aria-label',label+' 폴더 색상 바꾸기'); fc.title='폴더 색상 바꾸기'; fc.style.setProperty('--dot',fColorOf(label)[2]); fc.innerHTML='<i></i>';
+    const go=e=>{e.stopPropagation();e.preventDefault();colorPop(fc,label)}; fc.onclick=go; fc.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')go(e)}; b.appendChild(fc)} b.setAttribute('aria-label','폴더 '+label+', 악보 '+count+'개');
   const key='f:'+label, on=S.libSel.has(key);
   if(S.libSelMode){b.classList.toggle('sel',on);b.setAttribute('aria-pressed',on);const c=el('span','chk',on?'✓':'');c.setAttribute('aria-hidden','true');b.appendChild(c)}
   b.onclick=()=>{if(S.libSelMode){S.libSel.has(key)?S.libSel.delete(key):S.libSel.add(key);renderLib()}else{S.libView=label;renderLib()}};
@@ -1841,7 +1863,7 @@ async function renderLib(){
   // 사라진 항목은 선택에서 빼요
   for(const k of [...S.libSel]){if(k[0]==='f'?!fl.includes(k.slice(2)):!items.some(x=>x.id===k.slice(2)))S.libSel.delete(k)}
   $('#libBack').style.display=root?'none':''; $('#libTools').style.display=root?'':'none';
-  $('#libTitle').textContent=root?'내 악보함':S.libView; $('#libTitle').classList.toggle('editname',!root); $('#libTitle').title=root?'':'눌러서 폴더 이름 바꾸기';
+  $('#libTitle').textContent=root?'내 악보함':S.libView; {const cb=$('#libColorBtn'); cb.style.display=root?'none':''; if(!root)cb.style.setProperty('--dot',fColorOf(S.libView)[2])} $('#libTitle').classList.toggle('editname',!root); $('#libTitle').title=root?'':'눌러서 폴더 이름 바꾸기';
   $('#libSelBtn').textContent=S.libSelMode?'선택 취소':'선택';
   const nSc=selIds(items).length, pbtn=$('#libPlay'); pbtn.style.display=S.libSelMode&&nSc?'':'none'; pbtn.textContent=(S.libAdd?'맨 뒤에 추가 (':'순서대로 보기 (')+nSc+')';
   const dbtn=$('#libDelFolder'); dbtn.style.display=S.libSelMode&&S.libSel.size?'':'none'; dbtn.textContent='삭제 ('+S.libSel.size+')';
@@ -2002,7 +2024,7 @@ async function delSelected(){
   S.libSel.clear(); S.libSelMode=false; renderLib(); refreshResume(); toast(what+'를 지웠어요');
 }
 function openLib(){S.libView=null;S.libSelMode=false;S.libSel.clear();$('#libSearch').value='';$('#libModal').style.display='flex';document.querySelector('.hnav').classList.add('libopen');renderLib();$('#libClose').focus()}
-function closeLib(){S.libAdd=false;$('#libModal').style.display='none';document.querySelector('.hnav').classList.remove('libopen');refreshResume()}
+function closeLib(){closeCPop();S.libAdd=false;$('#libModal').style.display='none';document.querySelector('.hnav').classList.remove('libopen');refreshResume()}
 function openFolderDlg(){fdPick='gray';renderFdColors();$('#fdName').value='';$('#fdErr').textContent='';$('#folderDlg').style.display='flex';$('#fdName').focus()}
 function closeFolderDlg(){$('#folderDlg').style.display='none';const a=$('#libAdd');if(a)a.focus()}
 function addFolder(){
@@ -2032,6 +2054,7 @@ $('#libTitle').onclick=()=>{
   inp.onblur=save;
 };
 const libTitleClick=$('#libTitle').onclick;
+$('#libColorBtn').onclick=e=>{if(S.libView!=null)colorPop(e.currentTarget,S.libView)};
 $('#libClose').onclick=closeLib; $('#libBack').onclick=()=>{S.libView=null;renderLib()}; $('#libDelFolder').onclick=delSelected; $('#libSelBtn').onclick=toggleSelMode; $('#libPlay').onclick=openSet; makeDropTarget($('#libBack'),'');
 $('#libSearch').oninput=renderLib; $('#libSearch').onkeydown=e=>{if(e.key==='Escape'&&$('#libSearch').value){$('#libSearch').value='';renderLib();e.stopPropagation()}};
 $('#fdOk').onclick=addFolder; $('#fdCancel').onclick=closeFolderDlg;
