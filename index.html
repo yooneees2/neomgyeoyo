@@ -526,6 +526,8 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 #setList li.before::before{top:-8px}#setList li.after::after{bottom:-8px}
 @media (min-width:901px){main.hasSet{grid-template-columns:230px minmax(0,1fr)}}
 @media (max-width:900px){#setSide{height:auto;min-height:0}#setList{flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:14px;padding:6px 4px 10px}#setList li{width:104px}#setList li.before::before,#setList li.after::after{top:0;bottom:0;width:4px;height:auto;left:auto;right:auto}#setList li.before::before{left:-9px}#setList li.after::after{right:-9px}}
+#clipBar{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);z-index:70;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 24px);background:#fff;border:1.5px solid var(--ink);border-radius:20px;padding:12px 16px;box-shadow:0 12px 32px rgba(0,0,0,.18);font-size:14px;opacity:0;pointer-events:none;transition:opacity .3s var(--ease),transform .3s var(--ease)}
+#clipBar.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
 #keyHint{position:fixed;z-index:60;background:#0a0a0a;color:#fff;font-size:13px;padding:8px 12px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .35s var(--ease);white-space:nowrap}
 #keyHint.show{opacity:1}
 #keyHint::before{content:'';position:absolute;left:22px;top:-5px;border:5px solid transparent;border-top:0;border-bottom-color:#0a0a0a}
@@ -579,6 +581,7 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
   </div>
 </section>
 
+<div id="clipBar" role="status"><span id="clipTxt"></span><button type="button" id="clipOk" class="btn pink sm">담고 열기</button><button type="button" id="clipNo" class="btn sm" aria-label="닫기">닫기</button></div>
 <div id="keyHint" role="status">키를 바꾸고 싶으면 여기를 눌러요</div>
 <main>
   <aside id="setSide" class="card" aria-label="악보 순서" style="display:none">
@@ -2238,7 +2241,7 @@ function hNote(r){
 function hWeb(q){ // 네이버 이미지 검색을 새 탭으로 열어요 (악보는 사용자가 직접 복사해서 가져와요)
   q=(q||'').trim(); if(!q)return; const nq=q;
   window.open('https://search.naver.com/search.naver?where=image&query='+encodeURIComponent(nq),'_blank','noopener');
-  toast('네이버에서 이미지를 우클릭 → "이미지 복사"한 뒤, 이 화면에서 Ctrl+V를 눌러 주세요',5200);
+  toast('이미지를 우클릭 → "이미지 복사"한 뒤 이 탭으로 돌아오면 바로 담아 드려요',5200);
 }
 function hWebCard(){
   const box=$('#hqWeb'); box.innerHTML=''; const q=H.q.trim(); if(!q||!$('#landing').classList.contains('searching'))return;
@@ -2399,10 +2402,45 @@ $('#hqGo').onclick=()=>{H.searching=true;hRender();pdSchedule(true)};
 $('#tabLib').onclick=openLib;
 function hExt(kind){
   const q=H.q.trim(); if(!q){toast('곡 이름을 먼저 입력해 주세요');$('#hqIn').focus();return}
-  if(kind==='g'){window.open('https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q),'_blank','noopener');toast('구글에서 이미지를 우클릭 → "이미지 복사"한 뒤, 이 화면에서 Ctrl+V를 눌러 주세요',5200)}
+  H.ext={q,t:Date.now(),asked:false}; H.clipSig='';
+  if(kind==='g'){window.open('https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q),'_blank','noopener');toast('이미지를 우클릭 → "이미지 복사"한 뒤 이 탭으로 돌아오면 바로 담아 드려요',5200)}
   else hWeb(q);
 }
 $('#hqGoogle').onclick=()=>hExt('g'); $('#hqNaver').onclick=()=>hExt('n');
+/* 구글·네이버에서 이미지를 복사하고 돌아오면 자동으로 담기 제안 */
+let clipFiles=[];
+function clipShow(msg,files){
+  const b=$('#clipBar'); clipFiles=files||[]; $('#clipTxt').textContent=msg;
+  $('#clipOk').textContent=files&&files.length?'담고 열기':'붙여넣기'; b.classList.add('show');
+}
+function clipHide(){$('#clipBar').classList.remove('show'); clipFiles=[]}
+async function clipCheck(){
+  const e=H.ext; if(!e||Date.now()-e.t>20*60*1000||$('#landing').style.display==='none')return;
+  if(!navigator.clipboard||!navigator.clipboard.read){return}
+  try{
+    const items=await navigator.clipboard.read(), fs=[];
+    for(const it of items){const ty=it.types.find(t=>/^image\//.test(t)); if(ty){const bl=await it.getType(ty); fs.push(new File([bl],'image.'+ty.split('/')[1],{type:ty,lastModified:Date.now()}))}}
+    if(!fs.length)return;
+    const sig=fs.map(f=>f.size+f.type).join(','); if(sig===H.clipSig)return; H.clipSig=sig;
+    const q=e.q||'붙여넣은 악보';
+    clipShow('복사한 악보 이미지 '+fs.length+'장을 "'+q+'"(으)로 담을까요?',fs);
+  }catch(err){
+    if(!e.asked){e.asked=true; clipShow('이미지를 복사하셨나요? 복사한 악보를 바로 담을 수 있어요',null)}
+  }
+}
+$('#clipOk').onclick=async()=>{
+  const e=H.ext||{}, q=(e.q||'붙여넣은 악보');
+  let fs=clipFiles;
+  if(!fs.length){ // 허용 창이 막혔을 때: 이 클릭으로 직접 읽어요
+    try{const items=await navigator.clipboard.read(); fs=[]; for(const it of items){const ty=it.types.find(t=>/^image\//.test(t)); if(ty){const bl=await it.getType(ty); fs.push(new File([bl],'image.'+ty.split('/')[1],{type:ty,lastModified:Date.now()}))}}}catch(err){toast('붙여넣기를 허용하지 못했어요. 이 화면에서 Ctrl+V를 눌러 주세요',4200);clipHide();return}
+    if(!fs.length){toast('복사한 이미지가 없어요. 이미지를 우클릭 → "이미지 복사"를 먼저 해 주세요',4200);return}
+  }
+  const named=fs.map((f,i)=>new File([f],q+(fs.length>1?' '+(i+1):'')+'.'+((f.type.split('/')[1]||'png').replace('jpeg','jpg')),{type:f.type,lastModified:Date.now()+i}));
+  clipHide(); H.ext=null; openFiles(named);
+};
+$('#clipNo').onclick=()=>{clipHide()};
+window.addEventListener('focus',()=>{if(H.ext)setTimeout(clipCheck,250)});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&H.ext)setTimeout(clipCheck,250)});
 $('#fileAdd').onchange=async e=>{const fl=[...e.target.files]; e.target.value=''; if(fl.length){await libAddFiles(fl,''); H.searching=true; hRender()}};
 function homeAfterAdd(){idxRun(); hRender()}
 window.__homeReady=true;
