@@ -205,6 +205,9 @@ select.hchip.on{background-color:var(--ink);color:#fff}
 .hcard{margin-top:16px;background:#fff;border-radius:18px;padding:14px 18px;font-size:13.5px;color:#555;line-height:1.7;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .hcard .btn{flex:none}
 .hbar{height:6px;border-radius:3px;background:#ecece8;overflow:hidden;flex:1;min-width:140px}.hbar i{display:block;height:100%;background:var(--ink);width:0;transition:width .2s}
+.hweb{margin-top:16px;background:#fff;border:1.5px solid var(--ink);border-radius:18px;padding:14px 18px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.hweb .wmain{flex:1;min-width:220px;border:0;background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0}
+.hweb b{display:block;font-size:16px}.hweb small{display:block;font-size:12.5px;color:var(--soft);margin-top:3px;line-height:1.6}
 .hempty{text-align:center;color:var(--soft);padding:26px 0 6px;font-size:14.5px}
 @media (max-width:700px){.hq h2{font-size:28px;margin-bottom:20px}.hbox input[type=text]{font-size:18px}.hscope{display:none}}
 
@@ -457,6 +460,7 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
     </div>
     <div class="hchips" id="hqChips"></div>
     <div class="hchips" id="hqFilters" hidden></div>
+    <div id="hqWeb"></div>
     <div id="hqAI"></div>
     <div id="hqCount"></div>
     <div class="hres" id="hqRes"></div>
@@ -1970,8 +1974,8 @@ async function hRender(){
   const hasText=!!H.q.trim(); $('#hqClear').classList.toggle('show',hasText); $('#hqGo').classList.toggle('on',hasText);
   const sp=typed||H.searching;
   $('#hqChips').hidden=sp; $('#hqFilters').hidden=!sp;
-  if(!sp){hChips();$('#hqRes').innerHTML='';$('#hqCount').innerHTML='';hAIcard([]);hNote();return}
-  hFilters();
+  if(!sp){hChips();$('#hqRes').innerHTML='';$('#hqCount').innerHTML='';$('#hqWeb').innerHTML='';hAIcard([]);hNote();return}
+  hFilters(); hWebCard();
   const r=await hSearch(); if(seq!==hSeq)return;
   const cnt=$('#hqCount'); cnt.className='hcount';
   cnt.innerHTML=''; if(r.list.length){cnt.append(el('div',null,'내 악보함에서 '+r.list.length+'곡을 찾았어요'),el('span',null,r.list.some(x=>x.sem)?'뜻이 가까운 순서':'')); cnt.firstChild.style.fontWeight='700'; cnt.style.display='flex'}else cnt.style.display='none';
@@ -2031,21 +2035,46 @@ function hNote(r){
   const n=$('#hqNote'); n.innerHTML=''; const idx=n.dataset.idx; const sp=$('#landing').classList.contains('searching');
   if(idx)n.appendChild(el('div',null,idx));
   if(!sp){
-    n.appendChild(el('div',null,'악보 파일을 이 화면에 끌어다 놓거나 + 를 눌러 추가할 수 있어요'));
+    n.appendChild(el('div',null,'곡 이름을 쓰고 Enter를 누르면 네이버에서 악보 이미지를 찾아 줘요'));
+    n.appendChild(el('div',null,'찾은 이미지는 복사해서 Ctrl+V로 붙여넣거나, 이 화면에 끌어다 놓거나 + 를 눌러 추가할 수 있어요'));
     n.appendChild(el('div',null,'검색은 내 기기 안에서만 이뤄져요 · 악보와 가사는 밖으로 나가지 않아요'));
     if(!AI.on&&!AI.loading){const d=el('div'),b=el('button',null,'말로 찾기 켜기 (분위기·뜻으로 찾기)'); b.type='button'; b.onclick=aiEnable; d.appendChild(b); n.appendChild(d)}
-  }else if(r&&r.list&&r.list.length===0&&H.q.trim()){
-    const d=el('div'),b=el('button',null,'"'+H.q.trim()+'" 제목으로 인터넷에서 찾아보기 ↗'); b.type='button'; b.onclick=()=>window.open('https://www.google.com/search?q='+encodeURIComponent(H.q.trim()+' 악보 코드'),'_blank','noopener'); d.appendChild(b); n.appendChild(d);
-  }else if(sp&&r&&r.list&&r.list.length){
-    const d=el('div'),b=el('button',null,'찾는 곡이 없나요? 제목으로 인터넷에서 찾아보기 ↗'); b.type='button'; b.onclick=()=>window.open('https://www.google.com/search?q='+encodeURIComponent(H.q.trim()+' 악보 코드'),'_blank','noopener'); d.appendChild(b); n.appendChild(d);
   }
 }
+function hWeb(q){ // 네이버 이미지 검색을 새 탭으로 열어요 (악보는 사용자가 직접 복사해서 가져와요)
+  q=(q||'').trim(); if(!q)return; const nq=/악보|코드/.test(q)?q:q+' 악보 코드';
+  window.open('https://search.naver.com/search.naver?where=image&query='+encodeURIComponent(nq),'_blank','noopener');
+  toast('네이버에서 이미지를 우클릭 → "이미지 복사"한 뒤, 이 화면에서 Ctrl+V를 눌러 주세요',5200);
+}
+function hWebCard(){
+  const box=$('#hqWeb'); box.innerHTML=''; const q=H.q.trim(); if(!q||!$('#landing').classList.contains('searching'))return;
+  const c=el('div','hweb'), m=el('button','wmain'); m.type='button'; m.append(el('b',null,'네이버에서 "'+q+'" 악보 이미지 찾기 ↗'),el('small',null,'이미지를 우클릭 → "이미지 복사" → 이 화면에서 Ctrl+V (휴대폰은 오른쪽 "붙여넣기")')); m.onclick=()=>hWeb(q);
+  const pb=el('button','btn sm','붙여넣기'); pb.type='button'; pb.onclick=hPasteBtn; c.append(m,pb); box.appendChild(c);
+}
+async function hAddPasted(fs){
+  const q=H.q.trim();
+  const named=fs.map((f,i)=>/^image\.\w+$/i.test(f.name)?new File([f],(q||'붙여넣은 악보')+(fs.length>1?' '+(i+1):'')+'.'+((f.type.split('/')[1]||'png').replace('jpeg','jpg')),{type:f.type,lastModified:Date.now()+i}):f);
+  await libAddFiles(named,''); H.searching=true; hRender();
+}
+async function hPasteBtn(){
+  try{
+    const items=await navigator.clipboard.read(), fs=[];
+    for(const it of items){const ty=it.types.find(t=>/^image\//.test(t)); if(ty){const bl=await it.getType(ty); fs.push(new File([bl],'image.'+ty.split('/')[1],{type:ty,lastModified:Date.now()}))}}
+    if(!fs.length){toast('복사한 이미지가 없어요. 네이버에서 이미지를 우클릭 → "이미지 복사"를 먼저 해 주세요',4600);return}
+    hAddPasted(fs);
+  }catch(e){toast('붙여넣기를 허용하지 못했어요. 이 화면에서 Ctrl+V를 눌러 보세요',4200)}
+}
+window.addEventListener('paste',e=>{
+  const home=$('#landing').style.display!=='none'; if(!home&&!libOpen())return;
+  const fs=[...((e.clipboardData&&e.clipboardData.files)||[])].filter(f=>/^image\//.test(f.type)||/pdf/i.test(f.type)); if(!fs.length)return;
+  e.preventDefault(); if(libOpen())libAddFiles(fs,S.libView||''); else hAddPasted(fs);
+});
 let hT; const hDebounce=()=>{clearTimeout(hT);hT=setTimeout(hRender,120)};
 $('#hqIn').addEventListener('input',e=>{H.q=e.target.value;if(!H.q.trim()&&!H.lvl&&!H.tag&&!H.key&&H.folder==null)H.searching=false;hDebounce()});
-$('#hqIn').addEventListener('keydown',e=>{e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();H.searching=true;hRender()}else if(e.key==='Escape'){hClear()}});
+$('#hqIn').addEventListener('keydown',e=>{e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();H.searching=true;hRender();hWeb(H.q)}else if(e.key==='Escape'){hClear()}});
 function hClear(){H.q='';H.lvl=H.tag=H.key='';H.folder=null;H.searching=false;$('#hqIn').value='';hRender()}
 $('#hqClear').onclick=()=>{hClear();$('#hqIn').focus()};
-$('#hqGo').onclick=()=>{H.searching=true;hRender()};
+$('#hqGo').onclick=()=>{H.searching=true;hRender();hWeb(H.q)};
 $('#hqScope').onclick=openLib;
 $('#hqAdd').onclick=()=>$('#fileAdd').click();
 $('#fileAdd').onchange=async e=>{const fl=[...e.target.files]; e.target.value=''; if(fl.length){await libAddFiles(fl,''); H.searching=true; hRender()}};
