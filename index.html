@@ -43,11 +43,30 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16p
 .btn.mint{background:var(--g1);border-color:var(--line2)}
 .btn.sm{padding:6px 14px;font-size:13px;border-radius:999px}
 .btn[disabled]{opacity:.4;cursor:not-allowed}
-main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
-@media (max-width:900px){main{grid-template-columns:1fr}}
+main{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+@media (min-width:901px){main{margin-left:84px}main.recOnly{margin-left:0}}
 .card{background:var(--card);border-radius:var(--r);border:1px solid var(--line);padding:16px 18px}
 .card h3{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:6px;text-transform:none}
-.side{display:flex;flex-direction:column;gap:14px}
+.side{position:fixed;z-index:30;left:84px;top:96px;width:min(380px,calc(100vw - 96px));max-height:calc(100vh - 110px);overflow:auto;display:none;flex-direction:column;gap:14px;padding:8px 22px 32px 8px;scrollbar-width:none}
+.side.open{display:flex;animation:hin .3s var(--ease) backwards}
+.side>.card{display:none;box-shadow:0 10px 28px rgba(0,0,0,.14);border-color:var(--line2)}
+.side>.card.act{display:block}
+.sideX{position:absolute;right:38px;top:20px;z-index:2;width:30px;height:30px;border-radius:50%;border:0;background:#f1f1ee;color:#555;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.sideX:hover{background:#e6e6e2}
+.side>.card{position:relative}
+#tools{position:fixed;z-index:31;left:16px;top:104px;display:flex;flex-direction:column;gap:10px;width:64px}
+#tools .tl{position:relative;width:64px;border:0;background:#fff;border-radius:18px;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#555;font:inherit;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 1px 0 rgba(0,0,0,.04);transition:background .2s,color .2s,transform .1s}
+#tools .tl svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#tools .tl:hover{background:#f6f6f3;color:var(--ink)}#tools .tl:active{transform:scale(.96)}
+#tools .tl.on{background:var(--ink);color:#fff}
+#tools .tl:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+#tools .tl.live::after{content:'';position:absolute;top:8px;right:12px;width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1.3s ease-in-out infinite}
+@media (max-width:900px){
+ #tools{top:auto;bottom:0;left:0;right:0;width:auto;flex-direction:row;justify-content:space-around;gap:6px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:rgba(245,245,243,.94);backdrop-filter:blur(8px);border-top:1px solid var(--line2)}
+ #tools .tl{flex:1;width:auto;max-width:96px;padding:8px 0 6px;border-radius:14px}
+ .side{left:12px;right:12px;top:auto;bottom:84px;width:auto;max-height:62vh}
+ .app{padding-bottom:96px}
+}
 
 /* stage */
 #stage{
@@ -473,7 +492,7 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 #setList li.dragging{opacity:.4}
 #setList li.before::before,#setList li.after::after{content:'';position:absolute;left:0;right:0;height:4px;border-radius:2px;background:var(--red);z-index:3}
 #setList li.before::before{top:-8px}#setList li.after::after{bottom:-8px}
-@media (min-width:901px){main.hasSet{grid-template-columns:230px minmax(0,1fr) 360px}}
+@media (min-width:901px){main.hasSet{grid-template-columns:230px minmax(0,1fr)}}
 @media (max-width:900px){#setSide{height:auto;min-height:0}#setList{flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:14px;padding:6px 4px 10px}#setList li{width:104px}#setList li.before::before,#setList li.after::after{top:0;bottom:0;width:4px;height:auto;left:auto;right:auto}#setList li.before::before{left:-9px}#setList li.after::after{right:-9px}</style>
 </head>
 <body>
@@ -518,6 +537,12 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
   </div>
 </section>
 
+<nav id="tools" aria-label="도구" style="display:none">
+  <button type="button" class="tl" id="toolTurn" data-tool="turn" aria-label="넘기는 방법"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg><span>넘기기</span></button>
+  <button type="button" class="tl" id="toolKey" data-tool="key" aria-label="키 바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 20V5M4 9l4-4 4 4M16 4v15M12 15l4 4 4-4"/></svg><span>키</span></button>
+  <button type="button" class="tl" id="toolMet" data-tool="met" aria-label="메트로놈"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5L9 3z"/><path d="M12 17l4-9"/></svg><span>메트로놈</span></button>
+  <button type="button" class="tl" id="toolRec" data-tool="rec" aria-label="녹음"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>녹음</span></button>
+</nav>
 <main>
   <aside id="setSide" class="card" aria-label="악보 순서" style="display:none">
     <h3>악보 순서</h3>
@@ -562,9 +587,10 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
     <div id="recLib" style="display:none"><h2 class="jua" style="font-size:24px;margin:0 0 14px">녹음함</h2><ul id="takeList"></ul></div>
   </section>
 
-  <aside class="side">
+  <aside class="side" id="sidePanel">
+    <button type="button" class="sideX" id="sideX" aria-label="닫기">✕</button>
     <!-- 입력 방식 -->
-    <div class="card">
+    <div class="card" data-tool="turn">
       <h3>넘기는 방법</h3>
       <div class="opt"><div>음성으로 "넘겨!"<small id="voiceHint">끄는 중이에요</small></div>
         <label class="sw"><input type="checkbox" id="tgVoice"><span></span></label></div>
@@ -574,7 +600,7 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
     </div>
 
     <!-- 키 바꾸기 (코드 악보 모드) -->
-    <div class="card" id="keyCard" style="display:none">
+    <div class="card" id="keyCard" data-tool="key">
       <h3>키 바꾸기</h3>
       <div class="keys" id="detectInfo" style="margin-bottom:8px">악보를 열면 코드를 자동으로 찾아요</div>
       <div class="opt" id="optEdit"><div>읽은 코드 고치기<small>잘못 읽은 코드를 누르면 고치고, 빈 곳을 누르면 코드를 추가해요</small></div>
@@ -600,7 +626,7 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
     </div>
 
     <!-- 메트로놈 -->
-    <div class="card">
+    <div class="card" data-tool="met">
       <h3>메트로놈</h3>
       <div class="bpmRow">
         <button class="round" id="bpmMinus">−</button>
@@ -618,7 +644,7 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
     </div>
 
     <!-- 녹음 -->
-    <div class="card" id="recCard">
+    <div class="card" id="recCard" data-tool="rec">
       <div class="recRow">
         <button class="recBtn" id="recBtn"><span class="recDot"></span><span id="recLabel">녹음 시작</span></button>
         <div class="recTime" id="recTime">0:00</div>
@@ -726,7 +752,19 @@ function mascot(state,ms=600){
   els.forEach(e=>e.classList.add(state));
   if(state!=='listening') setTimeout(()=>els.forEach(e=>e.classList.remove(state)),ms);
 }
-function syncPill(){try{const p=$('#listenPill');if(!p)return;const rec=typeof R!=='undefined'&&R.on;p.style.display=(S.voice||rec)?'inline-flex':'none';$('#pillTxt').textContent=rec?'녹음 중':'듣는 중'}catch(e){}}
+function setTool(t){
+  if(t==='key'&&S.tab!=='key'){ $('#tabKey').click(); S.tool='key'; syncTools(); return }
+  S.tool=(S.tool===t)?null:t; syncTools();
+}
+function syncTools(){
+  const t=S.tool||null; $$('#tools .tl').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
+  $$('#sidePanel>.card').forEach(c=>c.classList.toggle('act',c.dataset.tool===t)); $('#sidePanel').classList.toggle('open',!!t);
+  $('#sidePanel').scrollTop=0;
+  if(t==='key')requestAnimationFrame(()=>{const st=$('#keyStrip'),a=st.querySelector('.on'); if(a)st.scrollTo({left:a.offsetLeft-st.clientWidth/2+a.clientWidth/2})});
+}
+function toolLive(){try{const rec=typeof R!=='undefined'&&R.on; $d('#toolRec').classList.toggle('live',!!rec); $d('#toolTurn').classList.toggle('live',!!S.voice); $d('#toolMet').classList.toggle('live',!!S.metOn)}catch(e){}}
+$$('#tools .tl').forEach(b=>b.onclick=()=>setTool(b.dataset.tool)); $('#sideX').onclick=()=>{S.tool=null;syncTools()};
+function syncPill(){toolLive();try{const p=$('#listenPill');if(!p)return;const rec=typeof R!=='undefined'&&R.on;p.style.display=(S.voice||rec)?'inline-flex':'none';$('#pillTxt').textContent=rec?'녹음 중':'듣는 중'}catch(e){}}
 function toast(msg,ms=2600){
   const t=$('#toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),ms);
@@ -889,6 +927,7 @@ window.addEventListener('keydown',e=>{
   if($('#saveDlg').style.display==='flex'){if(e.key==='Escape')closeSaveDlg();return}
   if($('#folderDlg').style.display==='flex'){if(e.key==='Escape')closeFolderDlg();return}
   if($('#libModal').style.display==='flex'){if(e.key==='Escape'){if(S.libSelMode)toggleSelMode();else if(S.libView!=null){S.libView=null;renderLib()}else closeLib()}return}
+  if(e.key==='Escape'&&S.tool){S.tool=null;syncTools();return}
   if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
   if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(S.page+1)}
   else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(S.page-1)}
@@ -1014,10 +1053,10 @@ function sched(){
 function metStart(){
   try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){toast('소리를 낼 수 없어요');return}
   S.metOn=true; bi=0; nextT=ac.currentTime+0.06; mTimer=setInterval(sched,25);
-  $('#metBtn').textContent='■ 멈춤'; $d('#dockMet').textContent='■ 멈춤';
+  $('#metBtn').textContent='■ 멈춤'; $d('#dockMet').textContent='■ 멈춤'; toolLive();
   if(S.voice&&S.sound&&!warnedHeadset){warnedHeadset=true;toast('음성 모드에서는 이어폰을 추천해요 (소리 버튼으로 끌 수도 있어요)',4000)}
 }
-function metStop(){S.metOn=false;clearInterval(mTimer);$('#metBtn').textContent='▶ 시작'; $d('#dockMet').textContent='▶ 시작';$$('#dots .dot, #dockDots .dot').forEach(d=>d.className='dot')}
+function metStop(){S.metOn=false;clearInterval(mTimer);toolLive();$('#metBtn').textContent='▶ 시작'; $d('#dockMet').textContent='▶ 시작';$$('#dots .dot, #dockDots .dot').forEach(d=>d.className='dot')}
 $('#metBtn').onclick=()=>S.metOn?metStop():metStart();
 $('#soundBtn').onclick=()=>{S.sound=!S.sound;$('#soundBtn').textContent=S.sound?'소리':'화면만'};
 let taps=[];
@@ -1417,13 +1456,13 @@ function applyView(){
   const chord=S.view==='chord', key=S.tab==='key', rec=S.tab==='rec'&&!chord, turn=S.tab==='turn'&&!chord;
   $('#chordView').style.display=chord?'block':'none';
   $('#chordBar').style.display=chord?'flex':'none';
-  $('#keyCard').style.display=key?'block':'none';
   $('#textModeBtn').style.display=(key&&!chord)?'inline-block':'none';
   document.querySelector('.hnav').classList.toggle('libopen',$('#libModal').style.display==='flex'); $('#tabHome').classList.toggle('on',S.tab==='home'&&!chord); $('#tabTurn').classList.toggle('on',S.tab==='turn'||(chord&&S.tab==='home')); $('#tabKey').classList.toggle('on',key); $('#tabRec').classList.toggle('on',rec);
   $('#chordEdit').style.display='none';
   $('#optEdit').style.display=chord?'none':''; $('#saveKeyPdf').style.display=chord?'none':'';
   if(!key){S.edit=false;$('#tgEdit').checked=false}
   const hasDoc=!!S.doc&&S.doc.type!=='chord', home=!chord&&S.tab==='home';
+  $('#tools').style.display=(home||rec)?'none':'flex'; if(home||rec||(S.tool==='key'&&!key))S.tool=null; syncTools();
   $('#keyUpload').style.display=((key||turn)&&!chord&&!hasDoc)?'flex':'none';
   $('#landing').style.display=home?'flex':'none'; $('#libBtn').style.display=home?'none':''; document.body.classList.toggle('home',home); $('main').style.display=home?'none':'';
   const isSet=!!S.doc&&S.doc.type==='set'&&!chord&&!rec; $('#setSide').style.display=isSet?'flex':'none'; $('main').classList.toggle('hasSet',isSet); if(isSet)renderSetList();
@@ -1459,7 +1498,7 @@ $('#tabTurn').onclick=()=>{
 };
 $('#tabKey').onclick=()=>{
   if(S.tab==='key')return;
-  S.tab='key'; applyView(); render(); updateKeyUI();
+  S.tab='key'; applyView(); render(); updateKeyUI(); S.tool='key'; syncTools();
 };
 $('#tabRec').onclick=()=>{if(S.tab==='rec')return;S.tab='rec';applyView();renderTakes()};
 $('#textModeBtn').onclick=enterChord; $('#chordBackBtn').onclick=exitChord;
