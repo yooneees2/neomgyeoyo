@@ -20,6 +20,7 @@
   --r:20px;
   --hf:'Fictional','Fredoka','Noto Sans KR',system-ui,sans-serif; /* 홈 큰 글씨: Fictional 글꼴이 준비되면 맨 앞 이름으로 바로 적용돼요 */
   --hbg:#eeedea;
+  --ease:cubic-bezier(.22,.8,.3,1);
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -159,19 +160,25 @@ textarea.note:focus,#pop textarea:focus{outline:2px solid var(--ink);outline-off
 
 .brand{cursor:pointer}
 /* --- 홈: 검색창 중심 --- */
-#landing{--ease:cubic-bezier(.22,.8,.3,1);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:calc(100vh - 64px);padding:clamp(76px,calc(50vh - 190px),230px) 0 48px;transition:padding-top .75s var(--ease)}
-#landing.searching{padding-top:96px}
+#landing{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:calc(100vh - 150px);padding:clamp(0px,calc(50vh - 270px),170px) 0 48px;transition:padding-top .75s var(--ease)}
+#landing.searching{padding-top:18px}
 @keyframes hin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 #landing .hq h2{animation:hin .6s var(--ease) backwards}
 #landing .hbox{animation:hin .6s .06s var(--ease) backwards}
-#landing .hnav{animation:hin .5s var(--ease) backwards}
+header .hnav{animation:hin .5s var(--ease) backwards}
+body{transition:background-color .5s ease}
 body.home{background:var(--hbg)}
 #landing{position:relative}
-.hnav{position:absolute;top:0;left:0;z-index:3;display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:8px 24px 8px 8px}
+.hnav{position:relative;z-index:3;display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:8px 24px 8px 8px}
 .hnav .hlogo{width:44px;height:44px;border-radius:50%;background:var(--red);border:0;padding:0;display:flex;align-items:center;justify-content:center;margin-right:10px;flex:none}
 .hnav .hlogo svg{width:30px;height:30px;display:block}
 .hnav .hlogo:focus-visible,.hnav .hl:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
-.hnav .hl{border:0;background:transparent;font:inherit;font-size:15.5px;font-weight:500;color:#6e6e6a;padding:6px 8px;border-radius:10px;cursor:pointer}
+.hnav .hl{border:0;background:transparent;font:inherit;font-size:15.5px;font-weight:500;color:#6e6e6a;padding:6px 8px;border-radius:10px;cursor:pointer;transition:color .2s}
+.hnav.libopen .hl.on:not(#tabLib){color:#6e6e6a;font-weight:500}.hnav.libopen #tabLib{color:var(--ink);font-weight:700}
+body.home header>:not(.hnav):not(.spacer),#libBtn{display:none!important}
+main,#chordView{animation:hin .45s var(--ease) backwards}
+@keyframes hfade{from{opacity:0}to{opacity:1}}
+#libModal{animation:hfade .25s ease backwards}#libModal .libbox{animation:hin .4s var(--ease) backwards}
 .hnav .hl:hover{color:var(--ink)}.hnav .hl.on{color:var(--ink);font-weight:700}
 @media (max-width:480px){.hnav{padding-right:14px;gap:2px}.hnav .hlogo{margin-right:4px}.hnav .hl{font-size:14px;padding:6px 6px}}
 
@@ -470,15 +477,13 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 <body>
 <div class="app">
 <header>
-  <div class="brand">
-    <div class="mascot" id="mascotTop"></div>
-    <div><h1>넘겨요!</h1></div>
-  </div>
-  <div class="tabs">
-    <button class="btn sm on" id="tabTurn">악보 넘기기</button>
-    <button class="btn sm" id="tabKey">키 바꾸기</button>
-    <button class="btn sm" id="tabRec">녹음함</button>
-  </div>
+  <nav class="hnav" aria-label="주 메뉴">
+    <button type="button" class="hlogo mascot" id="hnLogo" data-keep="1" aria-label="넘겨요! 처음으로"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M24 44V21l19-4v22" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="44" r="6.5" fill="#fff"/><circle cx="38" cy="40" r="6.5" fill="#fff"/></svg></button>
+    <button type="button" class="hl on" id="tabTurn">악보 넘기기</button>
+    <button type="button" class="hl" id="tabKey">키 바꾸기</button>
+    <button type="button" class="hl" id="tabLib">악보함</button>
+    <button type="button" class="hl" id="tabRec">녹음함</button>
+  </nav>
   <div class="spacer"></div>
   <button class="btn" id="textModeBtn" style="display:none">코드 텍스트 입력</button>
   <span id="listenPill"><i><b></b><b></b><b></b><b></b></i><span id="pillTxt">듣는 중</span></span>
@@ -488,13 +493,6 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 </header>
 
 <section id="landing">
-  <nav class="hnav" aria-label="주 메뉴">
-    <button type="button" class="hlogo" id="hnLogo" aria-label="넘겨요! 처음으로"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M24 44V21l19-4v22" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="44" r="6.5" fill="#fff"/><circle cx="38" cy="40" r="6.5" fill="#fff"/></svg></button>
-    <button type="button" class="hl on" id="hnTurn">악보 넘기기</button>
-    <button type="button" class="hl" id="hnKey">키 바꾸기</button>
-    <button type="button" class="hl" id="hnLib">악보함</button>
-    <button type="button" class="hl" id="hnRec">녹음함</button>
-  </nav>
   <div class="hq">
     <h2>What sheet music do you want?</h2>
     <div class="hbox" id="hqBox">
@@ -719,7 +717,7 @@ const MASCOT=`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
  <path class="nt" d="M24 44V21l19-4v22" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
  <circle class="nh" cx="19" cy="44" r="6" fill="#fff"/><circle class="nh" cx="38" cy="40" r="6" fill="#fff"/>
 </svg>`;
-$$('.mascot').forEach(m=>m.innerHTML=MASCOT);
+$$('.mascot:not([data-keep])').forEach(m=>m.innerHTML=MASCOT);
 function mascot(state,ms=600){
   const els=$$('.mascot');
   els.forEach(e=>e.classList.add(state));
@@ -907,10 +905,10 @@ window.addEventListener('dragenter',e=>{if(!hasFiles(e))return;e.preventDefault(
 window.addEventListener('dragover',e=>{if(!hasFiles(e))return;e.preventDefault();e.dataTransfer.dropEffect='copy'});
 window.addEventListener('dragleave',e=>{if(!hasFiles(e))return;dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)setDrag(false)});
 window.addEventListener('drop',e=>{if(!hasFiles(e))return;e.preventDefault();dragDepth=0;setDrag(false);if(libOpen())libAddFiles(e.dataTransfer.files,S.libView||'');else if(landing.style.display!=='none')libAddFiles(e.dataTransfer.files,'').then(()=>{H.searching=true;hRender()});else openFiles(e.dataTransfer.files)});
-$('.brand').onclick=()=>{
+$('#hnLogo').onclick=()=>{
   if(R.on)stopRec();
-  S.view='pdf'; S.doc=null; S.docId=''; S.prev=null; S.tab=S.tab||'turn';
-  applyView();
+  S.view='pdf'; S.doc=null; S.docId=''; S.prev=null; S.tab='turn';
+  applyView(); if(typeof hClear==='function'&&$('#landing').style.display!=='none'){hClear();$('#hqIn').focus()}
 };
 
 /* ---------- 음성 ---------- */
@@ -1422,13 +1420,13 @@ function applyView(){
   $('#chordBar').style.display=chord?'flex':'none';
   $('#keyCard').style.display=key?'block':'none';
   $('#textModeBtn').style.display=(key&&!chord)?'inline-block':'none';
-  $('#tabTurn').classList.toggle('on',!key&&!rec); $('#tabKey').classList.toggle('on',key); $('#tabRec').classList.toggle('on',rec);
+  document.querySelector('.hnav').classList.toggle('libopen',$('#libModal').style.display==='flex'); $('#tabTurn').classList.toggle('on',!key&&!rec); $('#tabKey').classList.toggle('on',key); $('#tabRec').classList.toggle('on',rec);
   $('#chordEdit').style.display='none';
   $('#optEdit').style.display=chord?'none':''; $('#saveKeyPdf').style.display=chord?'none':'';
   if(!key){S.edit=false;$('#tgEdit').checked=false}
   const hasDoc=!!S.doc&&S.doc.type!=='chord', home=!chord&&!hasDoc&&!key&&!rec;
   $('#keyUpload').style.display=(key&&!chord&&!hasDoc)?'flex':'none';
-  $('#landing').style.display=home?'flex':'none'; $('#libBtn').style.display=home?'none':''; document.querySelector('header').style.display=home?'none':''; document.body.classList.toggle('home',home); $('main').style.display=home?'none':'';
+  $('#landing').style.display=home?'flex':'none'; $('#libBtn').style.display=home?'none':''; document.body.classList.toggle('home',home); $('main').style.display=home?'none':'';
   const isSet=!!S.doc&&S.doc.type==='set'&&!chord&&!rec; $('#setSide').style.display=isSet?'flex':'none'; $('main').classList.toggle('hasSet',isSet); if(isSet)renderSetList();
   if(home&&window.__homeReady)homeShown();
   if(chord){$('#paper').style.display='none';$('#pager').style.display='none'}
@@ -1858,8 +1856,8 @@ async function delSelected(){
   store.set('nm-folders',folders().filter(x=>!fs.includes(x))); {const cm=fColors(); fs.forEach(f=>delete cm[f]); store.set('nm-folder-colors',cm)}
   S.libSel.clear(); S.libSelMode=false; renderLib(); refreshResume(); toast(what+'를 지웠어요');
 }
-function openLib(){S.libView=null;S.libSelMode=false;S.libSel.clear();$('#libSearch').value='';$('#libModal').style.display='flex';renderLib();$('#libClose').focus()}
-function closeLib(){$('#libModal').style.display='none';refreshResume()}
+function openLib(){S.libView=null;S.libSelMode=false;S.libSel.clear();$('#libSearch').value='';$('#libModal').style.display='flex';document.querySelector('.hnav').classList.add('libopen');renderLib();$('#libClose').focus()}
+function closeLib(){$('#libModal').style.display='none';document.querySelector('.hnav').classList.remove('libopen');refreshResume()}
 function openFolderDlg(){fdPick='gray';renderFdColors();$('#fdName').value='';$('#fdErr').textContent='';$('#folderDlg').style.display='flex';$('#fdName').focus()}
 function closeFolderDlg(){$('#folderDlg').style.display='none';const a=$('#libAdd');if(a)a.focus()}
 function addFolder(){
@@ -2221,7 +2219,7 @@ $('#hqIn').addEventListener('keydown',e=>{e.stopPropagation(); if(e.key==='Enter
 function hClear(){H.q='';H.lvl=H.tag=H.key='';H.folder=null;H.searching=false;$('#hqIn').value='';hRender()}
 $('#hqClear').onclick=()=>{hClear();$('#hqIn').focus()};
 $('#hqGo').onclick=()=>{H.searching=true;hRender();pdSchedule(true)};
-$('#hnLib').onclick=openLib; $('#hnKey').onclick=()=>$('#tabKey').click(); $('#hnRec').onclick=()=>$('#tabRec').click(); $('#hnLogo').onclick=$('#hnTurn').onclick=()=>{hClear();$('#hqIn').focus()};
+$('#tabLib').onclick=openLib;
 $('#hqAdd').onclick=()=>$('#fileAdd').click();
 $('#fileAdd').onchange=async e=>{const fl=[...e.target.files]; e.target.value=''; if(fl.length){await libAddFiles(fl,''); H.searching=true; hRender()}};
 function homeAfterAdd(){idxRun(); hRender()}
