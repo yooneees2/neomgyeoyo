@@ -2233,7 +2233,7 @@ function hNote(r){
   }
 }
 function hWeb(q){ // 네이버 이미지 검색을 새 탭으로 열어요 (악보는 사용자가 직접 복사해서 가져와요)
-  q=(q||'').trim(); if(!q)return; const nq=/악보|코드/.test(q)?q:q+' 악보 코드';
+  q=(q||'').trim(); if(!q)return; const nq=q;
   window.open('https://search.naver.com/search.naver?where=image&query='+encodeURIComponent(nq),'_blank','noopener');
   toast('네이버에서 이미지를 우클릭 → "이미지 복사"한 뒤, 이 화면에서 Ctrl+V를 눌러 주세요',5200);
 }
@@ -2396,7 +2396,7 @@ $('#hqGo').onclick=()=>{H.searching=true;hRender();pdSchedule(true)};
 $('#tabLib').onclick=openLib;
 function hExt(kind){
   const q=H.q.trim(); if(!q){toast('곡 이름을 먼저 입력해 주세요');$('#hqIn').focus();return}
-  if(kind==='g'){window.open('https://www.google.com/search?tbm=isch&q='+encodeURIComponent(/악보|코드/.test(q)?q:q+' 악보 코드'),'_blank','noopener');toast('구글에서 이미지를 우클릭 → "이미지 복사"한 뒤, 이 화면에서 Ctrl+V를 눌러 주세요',5200)}
+  if(kind==='g'){window.open('https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q),'_blank','noopener');toast('구글에서 이미지를 우클릭 → "이미지 복사"한 뒤, 이 화면에서 Ctrl+V를 눌러 주세요',5200)}
   else hWeb(q);
 }
 $('#hqGoogle').onclick=()=>hExt('g'); $('#hqNaver').onclick=()=>hExt('n');
