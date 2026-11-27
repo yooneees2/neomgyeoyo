@@ -236,6 +236,14 @@ select{font:inherit;border:1px solid var(--line2);border-radius:10px;padding:5px
 .trimBtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 main.recOnly{grid-template-columns:minmax(0,1fr)}
 main.recOnly>aside.side{display:none}
+#takeList .nm{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:2px 4px;border-radius:8px;cursor:text;font:inherit;color:inherit;min-width:0}
+#takeList .nm:hover{background:var(--g2)}
+#takeList .nm b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+#takeList .nm i{font-style:normal;font-size:12px;color:var(--soft)}
+#takeList .nmIn{flex:1;min-width:0;font:inherit;font-weight:700;border:1.5px solid var(--ink);border-radius:8px;padding:3px 8px;background:#fff}
+.trimSpeed{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px}
+.trimSpeed span{font-size:13px;color:var(--g4);margin-right:4px}
+.trimSpeed .btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 #recCard{padding:12px 14px}
 #recCard .recBtn{padding:7px 12px;font-size:14px}
 #recCard .recTime{font-size:18px;min-width:48px}
@@ -497,12 +505,13 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 </main>
 </div>
 
-<div id="trimDlg" role="dialog" aria-modal="true" aria-label="녹음 자르기" style="display:none">
+<div id="trimDlg" role="dialog" aria-modal="true" aria-label="녹음 편집" style="display:none">
   <div class="trimBox">
-    <h3 id="trimTitle">녹음 자르기</h3>
+    <h3 id="trimTitle">녹음 편집</h3>
     <div class="trimWave"><canvas id="trimCv" width="900" height="160"></canvas></div>
     <div class="trimTimes"><span>시작 <b id="trimS">0:00.0</b></span><span>길이 <b id="trimL">0:00.0</b></span><span>끝 <b id="trimE">0:00.0</b></span></div>
     <div class="trimHint">파란 손잡이를 끌어 구간을 고르세요</div>
+    <div class="trimSpeed" id="trimSpeed" role="group" aria-label="재생 속도"><span>재생 속도</span></div>
     <div class="trimBtns">
       <button class="btn sm" id="trimPlay" type="button">▶ 선택 구간 듣기</button>
       <button class="btn sm pink" id="trimKeep" type="button">선택한 부분만 남기기</button>
@@ -926,10 +935,17 @@ function renderTakes(){
   if(!R.takes.length){ul.innerHTML='<li class="empty" style="background:none">아직 녹음이 없어요</li>';return}
   R.takes.forEach(t=>{
     const li=document.createElement('li');
-    li.innerHTML='<div class="hd"><b></b><span class="tag"></span></div><audio controls></audio><div class="bt"><button class="btn sm" data-a="cut">자르기</button><button class="btn sm" data-a="dl">저장</button><button class="btn sm" data-a="del">삭제</button></div>';
+    li.innerHTML='<div class="hd"><button class="nm" type="button" title="이름 바꾸기"><b></b><i aria-hidden="true">✎</i></button><span class="tag"></span></div><audio controls></audio><div class="bt"><button class="btn sm" data-a="cut">편집</button><button class="btn sm" data-a="dl">저장</button><button class="btn sm" data-a="del">삭제</button></div>';
     li.querySelector('b').textContent=t.name;
-    li.querySelector('.tag').textContent=(t.page?t.page+'쪽 · ':'')+fmtT(t.dur);
-    li.querySelector('audio').src=t.url;
+    if(t.rate&&t.rate!==1)li.querySelector('.tag').title='재생 속도 '+t.rate+'배';
+    li.querySelector('.tag').textContent=(t.page?t.page+'쪽 · ':'')+fmtT(t.dur)+(t.rate&&t.rate!==1?' · '+t.rate+'배속':'');
+    const au=li.querySelector('audio'); au.src=t.url; au.preservesPitch=true; au.playbackRate=t.rate||1; au.addEventListener('play',()=>{au.playbackRate=t.rate||1});
+    li.querySelector('.nm').onclick=()=>{ // 이름 바꾸기
+      const b=li.querySelector('.nm'), inp=document.createElement('input'); inp.type='text'; inp.className='nmIn'; inp.value=t.name; inp.maxLength=40; inp.setAttribute('aria-label','녹음 이름');
+      b.replaceWith(inp); inp.focus(); inp.select(); let done=false;
+      const fin=ok=>{if(done)return;done=true; const v=inp.value.trim(); if(ok&&v&&v!==t.name){t.name=v;saveTake(t)} renderTakes()};
+      inp.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();fin(true)}else if(e.key==='Escape'){e.preventDefault();fin(false)}}; inp.onblur=()=>fin(true);
+    };
     li.querySelector('[data-a=cut]').onclick=()=>openTrim(t);
     li.querySelector('[data-a=dl]').onclick=()=>{const a=document.createElement('a');a.href=t.url;a.download=t.name+'.'+t.ext;a.click()};
     li.querySelector('[data-a=del]').onclick=()=>{if(!confirm('"'+t.name+'" 녹음을 지울까요? 되돌릴 수 없어요.'))return;URL.revokeObjectURL(t.url);R.takes=R.takes.filter(x=>x!==t);takeTx('readwrite',st=>st.delete(t.id)).catch(()=>{});renderTakes()};
@@ -938,11 +954,11 @@ function renderTakes(){
 }
 
 
-/* ---------- 녹음 자르기 ---------- */
+/* ---------- 녹음 편집 (자르기·재생 속도) ---------- */
 const TR={t:null,buf:null,peaks:null,s:0,e:1,drag:null,src:null,ac:null};
 function fmtMs(x){x=Math.max(0,x);const m=Math.floor(x/60),sec=(x-m*60);return m+':'+(sec<10?'0':'')+sec.toFixed(1)}
 async function openTrim(t){
-  TR.t=t; TR.buf=null; $('#trimTitle').textContent=t.name+' 자르기'; $('#trimMsg').textContent='소리를 불러오는 중…'; $('#trimDlg').style.display='flex'; trimStop();
+  TR.t=t; TR.buf=null; $('#trimTitle').textContent=t.name+' 편집'; trimSpeedUI(); $('#trimMsg').textContent='소리를 불러오는 중…'; $('#trimDlg').style.display='flex'; trimStop();
   try{
     const AC=window.AudioContext||window.webkitAudioContext; TR.ac=TR.ac||new AC();
     TR.buf=await TR.ac.decodeAudioData(await t.blob.arrayBuffer());
@@ -965,12 +981,23 @@ function drawTrim(){
   const up=()=>{TR.drag=null}; cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
 })();
 function trimMove(p){const g=Math.min(.02,.2/(TR.buf?TR.buf.duration:1)); if(TR.drag==='s')TR.s=Math.min(p,TR.e-g); else TR.e=Math.max(p,TR.s+g); TR.s=Math.max(0,TR.s); TR.e=Math.min(1,TR.e); trimStop(); drawTrim()}
-function trimStop(){if(TR.src){try{TR.src.stop()}catch(_){}TR.src=null}$('#trimPlay').textContent='▶ 선택 구간 듣기'}
+function trimStop(){if(TR.au){TR.au.pause();TR.au.ontimeupdate=null;TR.au.onended=null}TR.src=null;$('#trimPlay').textContent='▶ 선택 구간 듣기'}
+function trimSpeedUI(){ // 재생 속도 버튼 (목소리 높낮이는 그대로 두고 빠르기만 바꿔요)
+  const box=$('#trimSpeed'); box.querySelectorAll('button').forEach(x=>x.remove());
+  [0.5,0.75,1,1.25,1.5,2].forEach(v=>{
+    const b=document.createElement('button'); b.type='button'; b.className='btn sm'+((TR.t&&(TR.t.rate||1)===v)?' on':''); b.textContent=v===1?'보통':v+'배'; b.setAttribute('aria-pressed',b.classList.contains('on'));
+    b.onclick=()=>{ if(!TR.t)return; TR.t.rate=v; saveTake(TR.t); if(TR.au)TR.au.playbackRate=v; trimSpeedUI(); renderTakes() };
+    box.appendChild(b);
+  });
+}
 $('#trimPlay').onclick=()=>{
   if(!TR.buf)return; if(TR.src){trimStop();return}
-  if(TR.ac.state==='suspended')TR.ac.resume();
-  const src=TR.ac.createBufferSource(); src.buffer=TR.buf; src.connect(TR.ac.destination); const d=TR.buf.duration; src.start(0,TR.s*d,(TR.e-TR.s)*d); TR.src=src; $('#trimPlay').textContent='■ 멈춤';
-  src.onended=()=>{if(TR.src===src){TR.src=null;$('#trimPlay').textContent='▶ 선택 구간 듣기'}};
+  const au=TR.au||(TR.au=new Audio()); au.preservesPitch=true; au.mozPreservesPitch=true; au.webkitPreservesPitch=true;
+  au.src=TR.t.url; const d=TR.buf.duration, end=TR.e*d;
+  au.onloadedmetadata=()=>{au.currentTime=TR.s*d; au.playbackRate=TR.t.rate||1; au.play().catch(()=>{})};
+  if(au.readyState>=1){au.currentTime=TR.s*d; au.playbackRate=TR.t.rate||1; au.play().catch(()=>{})}
+  au.ontimeupdate=()=>{if(au.currentTime>=end)trimStop()}; au.onended=trimStop;
+  TR.src=au; $('#trimPlay').textContent='■ 멈춤';
 };
 function bufToWav(parts,rate,nch){ // parts: [[Float32Array per channel]...] 이어 붙여 16비트 WAV로
   const len=parts.reduce((n,p)=>n+p[0].length,0), ab=new ArrayBuffer(44+len*nch*2), v=new DataView(ab);
@@ -1414,13 +1441,13 @@ const libGet=id=>libTx('readonly',st=>st.get(id)), libPut=it=>libTx('readwrite',
 const takeTx=(mode,fn)=>libDB().then(db=>new Promise((res,rej)=>{const t=db.transaction('takes',mode),q=fn(t.objectStore('takes'));t.oncomplete=()=>res(q&&q.result);t.onerror=t.onabort=()=>rej(t.error)}));
 let takeWarned=false;
 function saveTake(t){ // 녹음을 이 브라우저에 저장 (새로고침해도 남아요)
-  return takeTx('readwrite',st=>st.put({id:t.id,name:t.name,page:t.page,dur:t.dur,ext:t.ext,blob:t.blob,at:t.id})).catch(e=>{console.warn(e);if(!takeWarned){takeWarned=true;toast('녹음을 보관하지 못했어요. 이 창을 닫으면 사라질 수 있어요. 꼭 저장 버튼으로 내려받아 두세요',4200)}});
+  return takeTx('readwrite',st=>st.put({id:t.id,name:t.name,page:t.page,dur:t.dur,ext:t.ext,blob:t.blob,rate:t.rate||1,at:t.id})).catch(e=>{console.warn(e);if(!takeWarned){takeWarned=true;toast('녹음을 보관하지 못했어요. 이 창을 닫으면 사라질 수 있어요. 꼭 저장 버튼으로 내려받아 두세요',4200)}});
 }
 async function loadTakes(){
   try{
     const all=(await takeTx('readonly',st=>st.getAll()))||[];
     all.sort((a,b)=>b.id-a.id);
-    R.takes=all.filter(t=>t.blob).map(t=>({id:t.id,name:t.name,page:t.page,dur:t.dur,ext:t.ext,blob:t.blob,url:URL.createObjectURL(t.blob)}));
+    R.takes=all.filter(t=>t.blob).map(t=>({id:t.id,name:t.name,page:t.page,dur:t.dur,ext:t.ext,blob:t.blob,rate:t.rate||1,url:URL.createObjectURL(t.blob)}));
     R.n=Math.max(R.n,...R.takes.map(t=>+((t.name.match(/^녹음 (\d+)/)||[])[1])||0));
   }catch(e){console.warn(e)}
   renderTakes();
