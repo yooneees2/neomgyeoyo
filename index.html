@@ -180,7 +180,7 @@ main,#chordView{animation:hin .45s var(--ease) backwards}
 @keyframes hfade{from{opacity:0}to{opacity:1}}
 #libModal{animation:hfade .25s ease backwards}#libModal .libbox{animation:hin .4s var(--ease) backwards}
 .hnav .hl:hover{color:var(--ink)}.hnav .hl.on{color:var(--ink);font-weight:700}
-@media (max-width:480px){.hnav{padding-right:14px;gap:2px}.hnav .hlogo{margin-right:4px}.hnav .hl{font-size:14px;padding:6px 6px}}
+@media (max-width:480px){.hnav{padding-right:12px;gap:0}.hnav .hlogo{margin-right:2px}.hnav .hl{font-size:13px;padding:6px 5px}}
 
 .hq{width:min(800px,100%)}
 .hq h2{font-family:var(--hf);font-size:clamp(34px,5.4vw,58px);font-weight:700;line-height:1.1;text-align:center;margin:0 auto 34px;max-width:12.5em;letter-spacing:-.01em;color:var(--ink);text-wrap:balance}
@@ -481,7 +481,8 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 <header>
   <nav class="hnav" aria-label="주 메뉴">
     <button type="button" class="hlogo mascot" id="hnLogo" data-keep="1" aria-label="넘겨요! 처음으로"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M24 44V21l19-4v22" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="44" r="6.5" fill="#fff"/><circle cx="38" cy="40" r="6.5" fill="#fff"/></svg></button>
-    <button type="button" class="hl on" id="tabTurn">악보 넘기기</button>
+    <button type="button" class="hl on" id="tabHome">홈</button>
+    <button type="button" class="hl" id="tabTurn">악보 넘기기</button>
     <button type="button" class="hl" id="tabKey">키 바꾸기</button>
     <button type="button" class="hl" id="tabLib">악보함</button>
     <button type="button" class="hl" id="tabRec">녹음함</button>
@@ -768,7 +769,7 @@ async function openFiles(fileList){
 }
 function openDemo(){S.doc={type:'demo',n:3};S.docId='demo';S.docName='데모';S.libId=null;S.page=1;afterOpen()}
 function afterOpen(){
-  if(S.tab==='rec')S.tab='turn'; // 녹음함에서 악보를 열면 악보 화면으로
+  if(S.tab==='rec'||S.tab==='home')S.tab='turn'; // 홈·녹음함에서 악보를 열면 악보 넘기기 화면으로
   S.view='pdf'; S.prev=null; S.kOff=0; S.inst=0; S.capo=0; S.edit=false; $('#tgEdit').checked=false; $('#libModal').style.display='none';
   S.lastPart=null; const fk=S.fileKey[keyId()]; S.kIdx=fk?fk.idx:0; S.kMinor=fk?fk.minor:false;
   applyView(); render(); updateKeyUI(); mascot('turn');
@@ -907,11 +908,7 @@ window.addEventListener('dragenter',e=>{if(!hasFiles(e))return;e.preventDefault(
 window.addEventListener('dragover',e=>{if(!hasFiles(e))return;e.preventDefault();e.dataTransfer.dropEffect='copy'});
 window.addEventListener('dragleave',e=>{if(!hasFiles(e))return;dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)setDrag(false)});
 window.addEventListener('drop',e=>{if(!hasFiles(e))return;e.preventDefault();dragDepth=0;setDrag(false);if(libOpen())libAddFiles(e.dataTransfer.files,S.libView||'');else if(landing.style.display!=='none')libAddFiles(e.dataTransfer.files,'').then(()=>{H.searching=true;hRender()});else openFiles(e.dataTransfer.files)});
-$('#hnLogo').onclick=()=>{
-  if(R.on)stopRec();
-  S.view='pdf'; S.doc=null; S.docId=''; S.prev=null; S.tab='turn';
-  applyView(); if(typeof hClear==='function'&&$('#landing').style.display!=='none'){hClear();$('#hqIn').focus()}
-};
+$('#hnLogo').onclick=()=>$('#tabHome').click();
 
 /* ---------- 음성 ---------- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -1168,7 +1165,7 @@ $('#trimDlg').addEventListener('keydown',e=>{if(e.key==='Escape'){trimStop();$('
 
 window.addEventListener('unhandledrejection',e=>{const m=String((e.reason&&e.reason.message)||e.reason);if(/SecurityError|Failed to construct 'Worker'|cannot be accessed from origin/i.test(m)){e.preventDefault();console.warn(m);try{toast('이 미리보기 화면에서는 일부 기능(사진·스캔 악보 인식)이 막혀 있어요. HTML 파일을 브라우저에서 직접 열어 주세요',4000)}catch(_){}}});
 /* ---------- 코드 악보 / 키 바꾸기 ---------- */
-S.view='pdf'; S.tab='turn'; S.prev=null; S.keyCache={}; S.fileKey={}; S.base=null; S.chordText=store.get('nm-chord',''); S.kIdx=0; S.kMinor=false; S.kOff=0; S.inst=0; S.capo=0;
+S.view='pdf'; S.tab='home'; S.prev=null; S.keyCache={}; S.fileKey={}; S.base=null; S.chordText=store.get('nm-chord',''); S.kIdx=0; S.kMinor=false; S.kOff=0; S.inst=0; S.capo=0;
 const NS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'], NF=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 const CH=/^([A-G])([#b]?)((?:maj|min|dim|aug|sus|add|m|M|\+|-|°|ø|\d|\(|\)|#|b)*)(?:\/([A-G])([#b]?))?$/;
 const SAMPLE=`# 넘겨요 연습곡 (Key: C)
@@ -1417,17 +1414,17 @@ $('#instSel').onchange=e=>{S.inst=+e.target.value;refreshChord()};
 $('#kOrigSel').onchange=e=>{const v=e.target.value;S.kMinor=v.endsWith('m');S.kIdx=parseInt(v);if(S.doc&&S.doc.type!=='chord')S.fileKey[keyId()]={idx:S.kIdx,minor:S.kMinor};refreshChord()};
 
 function applyView(){
-  const chord=S.view==='chord', key=S.tab==='key', rec=S.tab==='rec'&&!chord;
+  const chord=S.view==='chord', key=S.tab==='key', rec=S.tab==='rec'&&!chord, turn=S.tab==='turn'&&!chord;
   $('#chordView').style.display=chord?'block':'none';
   $('#chordBar').style.display=chord?'flex':'none';
   $('#keyCard').style.display=key?'block':'none';
   $('#textModeBtn').style.display=(key&&!chord)?'inline-block':'none';
-  document.querySelector('.hnav').classList.toggle('libopen',$('#libModal').style.display==='flex'); $('#tabTurn').classList.toggle('on',!key&&!rec); $('#tabKey').classList.toggle('on',key); $('#tabRec').classList.toggle('on',rec);
+  document.querySelector('.hnav').classList.toggle('libopen',$('#libModal').style.display==='flex'); $('#tabHome').classList.toggle('on',S.tab==='home'&&!chord); $('#tabTurn').classList.toggle('on',S.tab==='turn'||(chord&&S.tab==='home')); $('#tabKey').classList.toggle('on',key); $('#tabRec').classList.toggle('on',rec);
   $('#chordEdit').style.display='none';
   $('#optEdit').style.display=chord?'none':''; $('#saveKeyPdf').style.display=chord?'none':'';
   if(!key){S.edit=false;$('#tgEdit').checked=false}
-  const hasDoc=!!S.doc&&S.doc.type!=='chord', home=!chord&&!hasDoc&&!key&&!rec;
-  $('#keyUpload').style.display=(key&&!chord&&!hasDoc)?'flex':'none';
+  const hasDoc=!!S.doc&&S.doc.type!=='chord', home=!chord&&S.tab==='home';
+  $('#keyUpload').style.display=((key||turn)&&!chord&&!hasDoc)?'flex':'none';
   $('#landing').style.display=home?'flex':'none'; $('#libBtn').style.display=home?'none':''; document.body.classList.toggle('home',home); $('main').style.display=home?'none':'';
   const isSet=!!S.doc&&S.doc.type==='set'&&!chord&&!rec; $('#setSide').style.display=isSet?'flex':'none'; $('main').classList.toggle('hasSet',isSet); if(isSet)renderSetList();
   if(home&&window.__homeReady)homeShown();
@@ -1452,6 +1449,10 @@ function exitChord(){
   S.kOff=0; S.inst=0; S.capo=0; S.lastPart=null; const fk=S.doc?S.fileKey[keyId()]:null; S.kIdx=fk?fk.idx:0; S.kMinor=fk?fk.minor:false;
   applyView(); render(); updateKeyUI();
 }
+$('#tabHome').onclick=()=>{
+  if(S.tab==='home'){hClear();$('#hqIn').focus();return}
+  S.tab='home'; if(S.view==='chord')exitChord(); else{applyView()}
+};
 $('#tabTurn').onclick=()=>{
   if(S.tab==='turn')return;
   S.tab='turn'; if(S.view==='chord')exitChord(); else{applyView();render()}
