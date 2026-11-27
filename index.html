@@ -402,6 +402,11 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 .score-upload strong{font-family:var(--disp);font-size:28px;font-weight:400;letter-spacing:-0.02em}
 .score-upload-help{font-size:16px;line-height:1.6;color:var(--g4)}
 .score-upload-format{font-size:14px;color:var(--soft)}
+#upChoose{position:absolute;inset:6% 12%;z-index:4;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(255,255,255,.96);border:2px dashed var(--red);border-radius:28px;animation:hin .25s var(--ease) backwards}
+#upChoose button{width:min(280px,80%);padding:16px 20px;border:1.5px solid var(--ink);border-radius:999px;background:#fff;font-size:17px;font-weight:600;cursor:pointer;transition:background .15s,color .15s}
+#upChoose button#upFile{background:var(--ink);color:#fff}
+#upChoose button:hover{background:#f1f1ee}#upChoose button#upFile:hover{background:#2a2a28}
+#upChoose span{font-size:13px;color:var(--soft)}
 @media (max-width:900px){.score-upload{aspect-ratio:auto;min-height:300px}}
 @media (max-width:480px){.score-upload{min-height:260px;padding:24px 16px;border-radius:22px}.score-upload-plus{width:76px;height:76px}.score-upload-plus svg{width:34px;height:34px}.score-upload strong{font-size:24px}.score-upload-help{font-size:14px}}
 @media (prefers-reduced-motion:reduce){.score-upload,.score-upload-plus{transition:none}}
@@ -583,6 +588,7 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
         <span class="score-upload-help">클릭하거나 악보를 여기에 끌어다 놓으세요</span>
         <span class="score-upload-format">PDF · 이미지 파일</span>
       </button>
+      <div id="upChoose" role="menu" aria-label="악보 추가 방법" style="display:none"><button type="button" role="menuitem" id="upLib">악보함에서 고르기</button><button type="button" role="menuitem" id="upFile">내 파일 열기</button><span>PDF · 이미지 파일</span></div>
       <div id="drop">악보를 여기에 놓아 주세요 </div>
       <div class="bubble" id="bubble"></div>
       <div id="chordView"></div>
@@ -986,7 +992,12 @@ window.addEventListener('keydown',e=>{
 });
 
 /* ---------- 파일 열기 / 드래그 ---------- */
-$('#keyUpload').onclick=()=>$('#file').click();
+function upMenu(on){$('#upChoose').style.display=on?'flex':'none'; if(on)$('#upLib').focus()}
+$('#keyUpload').onclick=()=>upMenu(true);
+$('#upFile').onclick=()=>{upMenu(false);$('#file').click()};
+$('#upLib').onclick=()=>{upMenu(false);openLib()};
+$('#upChoose').onclick=e=>{if(e.target===$('#upChoose'))upMenu(false)};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#upChoose').style.display==='flex'){upMenu(false);e.stopPropagation()}},true);
 if(/[?&]demo=1/.test(location.search))setTimeout(openDemo,0);
 $('#file').onchange=e=>{openFiles(e.target.files);e.target.value=''};
 const stage=$('#stage'), uploadArea=$('#hqBox'), landing=$('#landing'), dropBox=$('#drop');
@@ -1514,7 +1525,7 @@ function applyView(){
   if(!key){S.edit=false;$('#tgEdit').checked=false}
   const hasDoc=!!S.doc&&S.doc.type!=='chord', home=!chord&&S.tab==='home';
   $('#tools').style.display=(home||rec)?'none':'flex'; if(home||rec){S.tool=null;if(S.fs)setFs(false)} syncTools();
-  $('#keyUpload').style.display=((key||turn)&&!chord&&!hasDoc)?'flex':'none';
+  $('#keyUpload').style.display=((key||turn)&&!chord&&!hasDoc)?'flex':'none'; if(hasDoc||chord)upMenu(false);
   $('#landing').style.display=home?'flex':'none'; $('#libBtn').style.display=home?'none':''; document.body.classList.toggle('home',home); $('main').style.display=home?'none':'';
   const isSet=!!S.doc&&S.doc.type==='set'&&!chord&&!rec; $('#setSide').style.display=isSet?'flex':'none'; $('main').classList.toggle('hasSet',isSet); if(isSet)renderSetList();
   if(home&&window.__homeReady)homeShown();
