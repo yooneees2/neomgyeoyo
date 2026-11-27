@@ -493,7 +493,13 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 #setList li.before::before,#setList li.after::after{content:'';position:absolute;left:0;right:0;height:4px;border-radius:2px;background:var(--red);z-index:3}
 #setList li.before::before{top:-8px}#setList li.after::after{bottom:-8px}
 @media (min-width:901px){main.hasSet{grid-template-columns:230px minmax(0,1fr)}}
-@media (max-width:900px){#setSide{height:auto;min-height:0}#setList{flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:14px;padding:6px 4px 10px}#setList li{width:104px}#setList li.before::before,#setList li.after::after{top:0;bottom:0;width:4px;height:auto;left:auto;right:auto}#setList li.before::before{left:-9px}#setList li.after::after{right:-9px}</style>
+@media (max-width:900px){#setSide{height:auto;min-height:0}#setList{flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:14px;padding:6px 4px 10px}#setList li{width:104px}#setList li.before::before,#setList li.after::after{top:0;bottom:0;width:4px;height:auto;left:auto;right:auto}#setList li.before::before{left:-9px}#setList li.after::after{right:-9px}}
+#keyHint{position:fixed;z-index:60;transform:translateY(-50%);background:#0a0a0a;color:#fff;font-size:13px;padding:8px 12px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .35s var(--ease);white-space:nowrap}
+#keyHint.m{transform:none}
+#keyHint.show{opacity:1}
+#keyHint::before{content:'';position:absolute;left:-5px;top:50%;margin-top:-5px;border:5px solid transparent;border-left:0;border-right-color:#0a0a0a}
+#keyHint.m::before{left:16px;top:auto;bottom:-5px;margin:0;border:5px solid transparent;border-bottom:0;border-top-color:#0a0a0a}
+</style>
 </head>
 <body>
 <div class="app">
@@ -501,8 +507,7 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
   <nav class="hnav" aria-label="주 메뉴">
     <button type="button" class="hlogo mascot" id="hnLogo" data-keep="1" aria-label="넘겨요! 처음으로"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M24 44V21l19-4v22" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="44" r="6.5" fill="#fff"/><circle cx="38" cy="40" r="6.5" fill="#fff"/></svg></button>
     <button type="button" class="hl on" id="tabHome">홈</button>
-    <button type="button" class="hl" id="tabTurn">악보 넘기기</button>
-    <button type="button" class="hl" id="tabKey">키 바꾸기</button>
+    <button type="button" class="hl" id="tabTurn">악보</button>
     <button type="button" class="hl" id="tabLib">악보함</button>
     <button type="button" class="hl" id="tabRec">녹음함</button>
   </nav>
@@ -538,11 +543,12 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 </section>
 
 <nav id="tools" aria-label="도구" style="display:none">
-  <button type="button" class="tl" id="toolTurn" data-tool="turn" aria-label="넘기는 방법"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg><span>넘기기</span></button>
   <button type="button" class="tl" id="toolKey" data-tool="key" aria-label="키 바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 20V5M4 9l4-4 4 4M16 4v15M12 15l4 4 4-4"/></svg><span>키</span></button>
   <button type="button" class="tl" id="toolMet" data-tool="met" aria-label="메트로놈"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5L9 3z"/><path d="M12 17l4-9"/></svg><span>메트로놈</span></button>
   <button type="button" class="tl" id="toolRec" data-tool="rec" aria-label="녹음"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>녹음</span></button>
+  <button type="button" class="tl" id="toolTurn" data-tool="turn" aria-label="넘기는 방법"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg><span>넘기는 법</span></button>
 </nav>
+<div id="keyHint" role="status">키를 바꾸고 싶으면 여기를 눌러요</div>
 <main>
   <aside id="setSide" class="card" aria-label="악보 순서" style="display:none">
     <h3>악보 순서</h3>
@@ -752,9 +758,15 @@ function mascot(state,ms=600){
   els.forEach(e=>e.classList.add(state));
   if(state!=='listening') setTimeout(()=>els.forEach(e=>e.classList.remove(state)),ms);
 }
-function setTool(t){
-  if(t==='key'&&S.tab!=='key'){ $('#tabKey').click(); S.tool='key'; syncTools(); return }
-  S.tool=(S.tool===t)?null:t; syncTools();
+function setTool(t){ $('#keyHint').classList.remove('show');
+  S.tool=(S.tool===t)?null:t; syncTools(); reconcileKey();
+}
+function closeTool(){S.tool=null;syncTools();reconcileKey()}
+function reconcileKey(){ // 키를 바꿨거나 키 패널이 열려 있으면 '키 모드'(코드를 찾아 바꿔 그림), 아니면 일반 악보
+  if(S.view==='chord'||(S.tab!=='turn'&&S.tab!=='key'))return;
+  const want=S.tool==='key'||S.kOff!==0;
+  if(want&&S.tab==='turn'){S.tab='key';applyView();render();updateKeyUI();syncTools()}
+  else if(!want&&S.tab==='key'){S.tab='turn';applyView();render()}
 }
 function syncTools(){
   const t=S.tool||null; $$('#tools .tl').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
@@ -763,7 +775,7 @@ function syncTools(){
   if(t==='key')requestAnimationFrame(()=>{const st=$('#keyStrip'),a=st.querySelector('.on'); if(a)st.scrollTo({left:a.offsetLeft-st.clientWidth/2+a.clientWidth/2})});
 }
 function toolLive(){try{const rec=typeof R!=='undefined'&&R.on; $d('#toolRec').classList.toggle('live',!!rec); $d('#toolTurn').classList.toggle('live',!!S.voice); $d('#toolMet').classList.toggle('live',!!S.metOn)}catch(e){}}
-$$('#tools .tl').forEach(b=>b.onclick=()=>setTool(b.dataset.tool)); $('#sideX').onclick=()=>{S.tool=null;syncTools()};
+$$('#tools .tl').forEach(b=>b.onclick=()=>setTool(b.dataset.tool)); $('#sideX').onclick=closeTool;
 function syncPill(){toolLive();try{const p=$('#listenPill');if(!p)return;const rec=typeof R!=='undefined'&&R.on;p.style.display=(S.voice||rec)?'inline-flex':'none';$('#pillTxt').textContent=rec?'녹음 중':'듣는 중'}catch(e){}}
 function toast(msg,ms=2600){
   const t=$('#toast'); t.textContent=msg; t.classList.add('show');
@@ -810,8 +822,15 @@ function afterOpen(){
   if(S.tab==='rec'||S.tab==='home')S.tab='turn'; // 홈·녹음함에서 악보를 열면 악보 넘기기 화면으로
   S.view='pdf'; S.prev=null; S.kOff=0; S.inst=0; S.capo=0; S.edit=false; $('#tgEdit').checked=false; $('#libModal').style.display='none';
   S.lastPart=null; const fk=S.fileKey[keyId()]; S.kIdx=fk?fk.idx:0; S.kMinor=fk?fk.minor:false;
-  applyView(); render(); updateKeyUI(); mascot('turn');
+  if(S.tab==='key'&&S.tool!=='key')S.tab='turn';
+  applyView(); render(); updateKeyUI(); mascot('turn'); keyHint();
   if(!S.mode) setTimeout(openModal,300);
+}
+function keyHint(){ // 처음 악보를 열면 키 아이콘 옆에 한 번만 알려줘요
+  try{if(store.get('nm-keyhint','')||S.tab==='home')return}catch(e){return}
+  setTimeout(()=>{const b=$('#toolKey'),h=$('#keyHint'); if(!b||!h||b.offsetParent===null||S.tool)return;
+    const r=b.getBoundingClientRect(),m=innerWidth<901; h.style.left=m?Math.max(8,r.left-4)+'px':(r.right+12)+'px'; h.style.top=m?'auto':(r.top+r.height/2)+'px'; h.style.bottom=m?(innerHeight-r.top+12)+'px':'auto'; h.classList.toggle('m',m); h.classList.add('show'); store.set('nm-keyhint','1');
+    clearTimeout(keyHint._t); keyHint._t=setTimeout(()=>h.classList.remove('show'),6000)},700);
 }
 
 /* ---------- 데모 악보 그리기 ---------- */
@@ -927,7 +946,7 @@ window.addEventListener('keydown',e=>{
   if($('#saveDlg').style.display==='flex'){if(e.key==='Escape')closeSaveDlg();return}
   if($('#folderDlg').style.display==='flex'){if(e.key==='Escape')closeFolderDlg();return}
   if($('#libModal').style.display==='flex'){if(e.key==='Escape'){if(S.libSelMode)toggleSelMode();else if(S.libView!=null){S.libView=null;renderLib()}else closeLib()}return}
-  if(e.key==='Escape'&&S.tool){S.tool=null;syncTools();return}
+  if(e.key==='Escape'&&S.tool){closeTool();return}
   if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
   if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(S.page+1)}
   else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(S.page-1)}
@@ -1447,7 +1466,7 @@ function refreshChord(){
 }
 $('#kUp').onclick=()=>{S.kOff=Math.min(11,S.kOff+1);refreshChord()};
 $('#kDown').onclick=()=>{S.kOff=Math.max(-11,S.kOff-1);refreshChord()};
-$('#kReset').onclick=()=>{S.kOff=0;S.inst=0;S.capo=0;refreshChord()};
+$('#kReset').onclick=()=>{S.kOff=0;S.inst=0;S.capo=0;refreshChord();reconcileKey()};
 $('#capoSel').onchange=e=>{S.capo=+e.target.value;refreshChord()};
 $('#instSel').onchange=e=>{S.inst=+e.target.value;refreshChord()};
 $('#kOrigSel').onchange=e=>{const v=e.target.value;S.kMinor=v.endsWith('m');S.kIdx=parseInt(v);if(S.doc&&S.doc.type!=='chord')S.fileKey[keyId()]={idx:S.kIdx,minor:S.kMinor};refreshChord()};
@@ -1457,12 +1476,12 @@ function applyView(){
   $('#chordView').style.display=chord?'block':'none';
   $('#chordBar').style.display=chord?'flex':'none';
   $('#textModeBtn').style.display=(key&&!chord)?'inline-block':'none';
-  document.querySelector('.hnav').classList.toggle('libopen',$('#libModal').style.display==='flex'); $('#tabHome').classList.toggle('on',S.tab==='home'&&!chord); $('#tabTurn').classList.toggle('on',S.tab==='turn'||(chord&&S.tab==='home')); $('#tabKey').classList.toggle('on',key); $('#tabRec').classList.toggle('on',rec);
+  document.querySelector('.hnav').classList.toggle('libopen',$('#libModal').style.display==='flex'); $('#tabHome').classList.toggle('on',S.tab==='home'&&!chord); $('#tabTurn').classList.toggle('on',S.tab==='turn'||S.tab==='key'||(chord&&S.tab==='home')); $('#tabRec').classList.toggle('on',rec);
   $('#chordEdit').style.display='none';
   $('#optEdit').style.display=chord?'none':''; $('#saveKeyPdf').style.display=chord?'none':'';
   if(!key){S.edit=false;$('#tgEdit').checked=false}
   const hasDoc=!!S.doc&&S.doc.type!=='chord', home=!chord&&S.tab==='home';
-  $('#tools').style.display=(home||rec)?'none':'flex'; if(home||rec||(S.tool==='key'&&!key))S.tool=null; syncTools();
+  $('#tools').style.display=(home||rec)?'none':'flex'; if(home||rec)S.tool=null; syncTools();
   $('#keyUpload').style.display=((key||turn)&&!chord&&!hasDoc)?'flex':'none';
   $('#landing').style.display=home?'flex':'none'; $('#libBtn').style.display=home?'none':''; document.body.classList.toggle('home',home); $('main').style.display=home?'none':'';
   const isSet=!!S.doc&&S.doc.type==='set'&&!chord&&!rec; $('#setSide').style.display=isSet?'flex':'none'; $('main').classList.toggle('hasSet',isSet); if(isSet)renderSetList();
@@ -1493,12 +1512,8 @@ $('#tabHome').onclick=()=>{
   S.tab='home'; if(S.view==='chord')exitChord(); else{applyView()}
 };
 $('#tabTurn').onclick=()=>{
-  if(S.tab==='turn')return;
-  S.tab='turn'; if(S.view==='chord')exitChord(); else{applyView();render()}
-};
-$('#tabKey').onclick=()=>{
-  if(S.tab==='key')return;
-  S.tab='key'; applyView(); render(); updateKeyUI(); S.tool='key'; syncTools();
+  if(S.tab==='turn'||S.tab==='key')return;
+  S.tab=(S.kOff!==0||S.tool==='key')?'key':'turn'; if(S.view==='chord')exitChord(); else{applyView();render();if(S.tab==='key')updateKeyUI()}
 };
 $('#tabRec').onclick=()=>{if(S.tab==='rec')return;S.tab='rec';applyView();renderTakes()};
 $('#textModeBtn').onclick=enterChord; $('#chordBackBtn').onclick=exitChord;
