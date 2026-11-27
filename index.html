@@ -159,8 +159,12 @@ textarea.note:focus,#pop textarea:focus{outline:2px solid var(--ink);outline-off
 
 .brand{cursor:pointer}
 /* --- 홈: 검색창 중심 --- */
-#landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 64px);padding:70px 0 48px}
-#landing.searching{justify-content:flex-start;padding-top:96px}
+#landing{--ease:cubic-bezier(.22,.8,.3,1);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:calc(100vh - 64px);padding:clamp(76px,calc(50vh - 190px),230px) 0 48px;transition:padding-top .75s var(--ease)}
+#landing.searching{padding-top:96px}
+@keyframes hin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+#landing .hq h2{animation:hin .6s var(--ease) backwards}
+#landing .hbox{animation:hin .6s .06s var(--ease) backwards}
+#landing .hnav{animation:hin .5s var(--ease) backwards}
 body.home{background:var(--hbg)}
 #landing{position:relative}
 .hnav{position:absolute;top:0;left:0;z-index:3;display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:8px 24px 8px 8px}
@@ -173,7 +177,12 @@ body.home{background:var(--hbg)}
 
 .hq{width:min(800px,100%)}
 .hq h2{font-family:var(--hf);font-size:clamp(34px,5.4vw,58px);font-weight:700;line-height:1.1;text-align:center;margin:0 auto 34px;max-width:12.5em;letter-spacing:-.01em;color:var(--ink);text-wrap:balance}
-#landing.searching .hq h2{display:none}
+#landing.searching .hq h2{max-height:0;opacity:0;margin-bottom:0;transform:translateY(-12px);pointer-events:none}
+.hq h2{max-height:3.4em;overflow:hidden;transition:max-height .7s var(--ease),opacity .4s ease,margin .7s var(--ease),transform .7s var(--ease)}
+#landing:not(.searching) :is(#hqAI,#hqCount,#hqRes,#hqPD,#hqWeb){opacity:0}
+#landing.searching :is(#hqAI,#hqCount,#hqRes,#hqPD,#hqWeb){opacity:1;transition:opacity .45s .15s ease}
+.pdgrid,.pdmsg{animation:hin .4s var(--ease) backwards}
+@media (prefers-reduced-motion:reduce){#landing,#landing *{transition:none!important;animation:none!important}}
 .hbox{background:#fff;border:1.5px solid var(--line);border-radius:30px;padding:18px 20px 14px;transition:border-color .15s,box-shadow .15s}
 .hbox:focus-within{border-color:var(--ink)}
 .hbox.dragging{border-color:var(--red);box-shadow:0 0 0 6px rgba(229,50,45,.12)}
@@ -188,8 +197,8 @@ body.home{background:var(--hbg)}
 .hx.show{display:grid}
 .hgo{background:#d9d9d4;color:#fff}.hgo.on{background:var(--ink)}
 .hx+.hgo{margin-left:0}.hgo{margin-left:auto}.hx.show+.hgo{margin-left:0}
-.hchips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px 0 0}
-.hchips[hidden]{display:none}
+.hchips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px 0 0;max-height:160px;overflow:hidden;transition:max-height .5s var(--ease),opacity .3s ease,margin .5s var(--ease),visibility 0s}
+.hchips[hidden]{display:flex;max-height:0;opacity:0;margin-top:0;visibility:hidden;pointer-events:none;transition:max-height .45s var(--ease),opacity .2s ease,margin .45s var(--ease),visibility 0s .45s}
 .hchip{border:1px solid #e2e2de;background:#fff;border-radius:18px;height:36px;padding:0 17px;font:inherit;font-size:14.5px;font-weight:500;color:#444;cursor:pointer}
 .hchip:hover{border-color:var(--g3)}
 .hchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -2023,7 +2032,7 @@ async function hRender(){
   const hasText=!!H.q.trim(); $('#hqClear').classList.toggle('show',hasText); $('#hqGo').classList.toggle('on',hasText);
   const sp=typed||H.searching;
   $('#hqChips').hidden=sp; $('#hqFilters').hidden=!sp;
-  if(!sp){hChips();$('#hqRes').innerHTML='';$('#hqCount').innerHTML='';$('#hqWeb').innerHTML='';PD.seq++;PD.want='';PD.inflight='';PD.state='idle';PD.term='';clearTimeout(PD.t);$('#hqPD').innerHTML='';hAIcard([]);hNote();return}
+  if(!sp){hChips();$('#hqRes').innerHTML='';$('#hqCount').innerHTML='';$('#hqWeb').innerHTML='';PD.seq++;PD.want='';PD.inflight='';PD.state='idle';PD.term='';clearTimeout(PD.t);$('#hqPD').innerHTML='';$('#hqPD').dataset.sig='';hAIcard([]);hNote();return}
   hFilters(); hWebCard(); pdSchedule();
   const r=await hSearch(); if(seq!==hSeq)return;
   const cnt=$('#hqCount'); cnt.className='hcount';
@@ -2160,7 +2169,7 @@ const pdName=t=>t.replace(/^File:/,'').replace(/\.[^.]+$/,'').replace(/^IMSLP\d+
 const pdLic=l=>/public domain/i.test(l)?'저작권 풀림':(l||'');
 function pdPrev(url){return url.replace(/(\d+)px-([^/]*)$/,(m,n,r)=>'960px-'+r)}
 function pdRender(){
-  const box=$('#hqPD'); box.innerHTML=''; if(PD.state==='idle')return;
+  const box=$('#hqPD'), sig=PD.state+'|'+PD.term+'|'+PD.show+'|'+PD.res.length+'|'+PD.ko.join(); if(box.dataset.sig===sig&&box.firstChild)return; box.dataset.sig=sig; box.innerHTML=''; if(PD.state==='idle'){box.dataset.sig='';return}
   const head=el('div','pdhead'); head.append(el('b',null,'저작권이 풀린 공개 악보'),el('span',null,'위키미디어 커먼즈')); box.appendChild(head);
   const msg=t=>{const d=el('div','pdmsg',t); box.appendChild(d); return d};
   if(PD.state==='hint'){
