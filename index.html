@@ -247,6 +247,8 @@ select.hchip.on{background-color:var(--ink);color:#fff}
 .pdcard b{font-size:13px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .pdcard small{font-size:11.5px;color:var(--soft)}
 .pdmore{display:block;margin:14px auto 0}
+.pdgroup{margin-top:18px;font-size:13px;font-weight:700;color:#777}
+.pdpop{justify-content:flex-start;margin-top:8px;max-height:none!important}
 .pdmsg{margin-top:14px;background:#fff;border-radius:18px;padding:14px 18px;font-size:13.5px;color:#555;line-height:1.7}
 .pdmsg .hchips{margin-top:10px}
 #pdDlg{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:56;padding:16px}
@@ -2062,7 +2064,8 @@ function hTagEdit(it,box,btn){
 }
 function hChips(){
   const box=$('#hqChips'); if(box.dataset.done)return; box.dataset.done='1';
-  ['Amazing Grace','엘리제를 위하여','쉬운 곡','잔잔한 곡','코드 4개 이하'].forEach(t=>{const b=el('button','hchip',t); b.type='button'; b.onclick=()=>{$('#hqIn').value=t;H.q=t;H.searching=true;hRender()}; box.appendChild(b)});
+  const pop=el('button','hchip','인기 공개 악보'); pop.type='button'; pop.onclick=()=>{$('#hqIn').value='';H.q='';PD.pop=true;H.searching=true;hRender();pdSchedule(true)}; box.appendChild(pop);
+  ['어메이징 그레이스','엘리제를 위하여','쉬운 곡','잔잔한 곡','코드 4개 이하'].forEach(t=>{const b=el('button','hchip',t); b.type='button'; b.onclick=()=>{$('#hqIn').value=t;H.q=t;H.searching=true;hRender();pdSchedule(true)}; box.appendChild(b)});
 }
 function hFilters(){
   const box=$('#hqFilters'); box.innerHTML='';
@@ -2125,8 +2128,13 @@ window.addEventListener('paste',e=>{
   e.preventDefault(); if(libOpen())libAddFiles(fs,S.libView||''); else hAddPasted(fs);
 });
 /* ---------- 공개 악보 검색 (위키미디어 커먼즈 · 서버 없이 브라우저에서 바로) ---------- */
-const PD={seq:0,want:'',inflight:'',term:'',res:[],state:'idle',show:12,cache:{},t:0,ko:[],files:{}};
-const PD_KO=[['엘리제를 위하여','Fur Elise'],['엘리제','Fur Elise'],['캐논','Canon Pachelbel'],['카논','Canon Pachelbel'],['파헬벨','Pachelbel'],['아베마리아','Ave Maria'],['아베 마리아','Ave Maria'],['월광','Moonlight Sonata'],['터키행진곡','Turkish March'],['터키 행진곡','Turkish March'],['짐노페디','Gymnopedie'],['환희의 송가','Ode to Joy'],['사계','Four Seasons'],['어메이징 그레이스','Amazing Grace'],['나 같은 죄인 살리신','Amazing Grace'],['고요한 밤','Silent Night'],['기쁘다 구주 오셨네','Joy to the World'],['징글벨','Jingle Bells'],['아리랑','Arirang'],['반짝반짝 작은 별','Twinkle Twinkle Little Star'],['오 거룩한 밤','O Holy Night'],['아름답고 푸른 도나우','Blue Danube'],['푸른 도나우','Blue Danube'],['베토벤','Beethoven'],['모차르트','Mozart'],['바흐','Bach'],['쇼팽','Chopin'],['슈베르트','Schubert'],['슈만','Schumann'],['헨델','Handel'],['하이든','Haydn'],['브람스','Brahms'],['드뷔시','Debussy'],['사티','Satie'],['비발디','Vivaldi'],['리스트','Liszt'],['차이콥스키','Tchaikovsky'],['라흐마니노프','Rachmaninoff'],['멘델스존','Mendelssohn'],['파가니니','Paganini'],['엘가','Elgar'],['그리그','Grieg'],['요한 슈트라우스','Johann Strauss'],['소나타','Sonata'],['협주곡','Concerto'],['교향곡','Symphony'],['왈츠','Waltz'],['녹턴','Nocturne'],['야상곡','Nocturne'],['전주곡','Prelude'],['즉흥곡','Impromptu'],['변주곡','Variations'],['행진곡','March'],['찬송가','Hymn'],['찬송','Hymn'],['성가','Hymn'],['캐럴','Carol'],['크리스마스','Christmas']].sort((a,b)=>b[0].length-a[0].length);
+const PD={pop:false,seq:0,want:'',inflight:'',term:'',res:[],state:'idle',show:12,cache:{},t:0,ko:[],files:{}};
+const PD_POP=[
+ ['피아노 클래식',[['엘리제를 위하여','Fur Elise Beethoven piano'],['월광 소나타','Moonlight Sonata Beethoven piano'],['캐논','Canon in D Pachelbel piano'],['달빛 (클레르 드 륀)','Clair de Lune Debussy piano'],['짐노페디','Gymnopedie Satie piano'],['터키 행진곡','Turkish March Mozart piano'],['쉬운 소나타 (K.545)','Sonata facile K 545 Mozart piano'],['즉흥환상곡','Fantaisie-Impromptu Chopin piano'],['녹턴 Op.9-2','Nocturne Op 9 No 2 Chopin piano'],['사랑의 꿈','Liebestraum Liszt piano'],['아라베스크','Arabesque Burgmuller piano'],['트로이메라이','Traumerei Schumann piano'],['브람스 자장가','Brahms Lullaby piano'],['헝가리 무곡 5번','Hungarian Dance 5 Brahms piano'],['사랑의 인사','Salut d\'amour Elgar piano'],['G선상의 아리아','Air on the G string Bach piano'],['미뉴에트 G장조','Minuet in G Bach piano'],['예수 인류의 소망 되시니','Jesu Joy of Man\'s Desiring Bach piano'],['아름답고 푸른 도나우','Blue Danube Strauss piano'],['결혼 행진곡','Wedding March Mendelssohn piano']]],
+ ['찬송가·캐럴',[['어메이징 그레이스','Amazing Grace lead sheet'],['예수 사랑하심은','Jesus Loves Me piano'],['거룩 거룩 거룩','Holy Holy Holy Dykes piano'],['죄 짐 맡은 우리 구주','What a Friend We Have in Jesus piano'],['내 영혼이 은총 입어','It Is Well with My Soul piano'],['큰 죄에 빠진 날 위해','Just As I Am piano'],['내 주를 가까이 하게 함은','Nearer My God to Thee piano'],['만세 반석 열리니','Rock of Ages piano'],['내 주는 강한 성이요','A Mighty Fortress Is Our God piano'],['때 저물어 날 이미 어두니','Abide with Me piano'],['고요한 밤','Silent Night piano'],['기쁘다 구주 오셨네','Joy to the World piano'],['참 반가운 성도여','O Come All Ye Faithful piano'],['저 들 밖에 한밤중에','The First Noel piano'],['천사들의 노래를','Angels We Have Heard on High piano'],['오 거룩한 밤','O Holy Night piano'],['징글벨','Jingle Bells piano'],['환희의 송가','Ode to Joy Beethoven piano']]],
+ ['동요·민요·팝',[['아리랑','Arirang'],['반짝반짝 작은 별','Twinkle Twinkle Little Star piano'],['생일 축하합니다','Happy Birthday piano'],['석별의 정','Auld Lang Syne piano'],['그린슬리브스','Greensleeves piano'],['메이플 리프 랙','Maple Leaf Rag piano'],['디 엔터테이너','The Entertainer Joplin piano'],['오 수재나','Oh Susanna piano'],['스카버러 페어','Scarborough Fair'],['대니 보이','Danny Boy piano']]]];
+const PD_EX=[['엘리제','Fur Elise piano'],['캐논 변주곡','Canon in D Pachelbel piano'],['카논','Canon in D Pachelbel piano'],['파헬벨','Pachelbel'],['아베마리아','Ave Maria'],['아베 마리아','Ave Maria'],['달빛','Clair de Lune Debussy piano'],['클레르 드 륀','Clair de Lune Debussy piano'],['쉬운 소나타','Sonata facile K 545 Mozart piano'],['소나티네','Sonatine'],['사계','Four Seasons'],['어메이징','Amazing Grace lead sheet'],['나 같은 죄인 살리신','Amazing Grace lead sheet'],['예수 사랑','Jesus Loves Me piano'],['예수사랑','Jesus Loves Me piano'],['징글 벨','Jingle Bells piano'],['캐롤','Carol'],['캐럴','Carol'],['크리스마스','Christmas'],['생일 축하','Happy Birthday piano'],['반짝반짝','Twinkle Twinkle Little Star piano'],['작은 별','Twinkle Twinkle Little Star piano'],['베토벤','Beethoven'],['모차르트','Mozart'],['바흐','Bach'],['쇼팽','Chopin'],['슈베르트','Schubert'],['슈만','Schumann'],['헨델','Handel'],['하이든','Haydn'],['브람스','Brahms'],['드뷔시','Debussy'],['사티','Satie'],['비발디','Vivaldi'],['리스트','Liszt'],['차이콥스키','Tchaikovsky'],['라흐마니노프','Rachmaninoff'],['멘델스존','Mendelssohn'],['파가니니','Paganini'],['엘가','Elgar'],['그리그','Grieg'],['부르크뮐러','Burgmuller'],['부르크뮬러','Burgmuller'],['체르니','Czerny'],['하농','Hanon'],['소나타','Sonata'],['협주곡','Concerto'],['교향곡','Symphony'],['왈츠','Waltz'],['녹턴','Nocturne'],['야상곡','Nocturne'],['전주곡','Prelude'],['즉흥곡','Impromptu'],['변주곡','Variations'],['행진곡','March'],['찬송가','Hymn'],['찬송','Hymn'],['성가','Hymn'],['동요','Children song'],['민요','Folk song']];
+const PD_KO=[...PD_POP.flatMap(g=>g[1]),...PD_EX].sort((a,b)=>b[0].length-a[0].length);
 function pdTerm(q){
   let s=' '+q+' '; PD_KO.forEach(([k,v])=>{if(s.includes(k))s=s.split(k).join(' '+v+' ')});
   s=s.replace(/코드\s*\d+\s*개\s*이하|[A-Ga-g][#b♭♯]?\s*키|쉬운|어려운|악보|코드|연주곡|잔잔한|느낌/g,' ');
@@ -2134,7 +2142,16 @@ function pdTerm(q){
   return {term:s.replace(/\s+/g,' ').trim(),ko};
 }
 const PD_MIME=/^(application\/pdf|image\/(png|jpeg|svg\+xml|webp))$/;
-const pdOK=x=>PD_MIME.test(x.mime||'')&&x.url&&x.thumb&&(x.mime!=='application/pdf'||x.pages<=40)&&x.size<=40e6;
+const PD_DROP=/\b(bars?|mm\.|measures?|excerpts?|motifs?|analysis|fragments?|covers?|title ?page|autograph|sketch(es)?|manuscripts?|diagram|chart|examples?|nypl|hades)\b|\bM\.\s*\d|wikiorchestra/i;
+const PD_BAD=/\b(choir|satb|chorus|chorale|choral|vocal score|hymnal|four[- ]part|mixed voices|string quartet|orchestra|full score|partitur|quartet|trio|cello|violin|viola|bass|flute|oboe|clarinet|trumpet|horn|trombone|tuba|organ|harp|band)\b|\(IA /i;
+const PD_GOOD=/piano|easy|simple|beginner|lead ?sheet|melody|solo|guitar|chords?|klavier|simplified/i;
+const pdOK=x=>PD_MIME.test(x.mime||'')&&x.url&&x.thumb&&(x.mime!=='application/pdf'||x.pages<=30)&&x.size<=40e6&&x.size>4000&&!PD_DROP.test(x.title);
+function pdScore(x,i){ // 쉽게 볼 수 있는 악보(피아노·리드시트·한두 쪽)는 위로, 합창·관현악·옛 스캔은 아래로
+  let v=-i*0.4; const t=x.title;
+  if(PD_GOOD.test(t))v+=28; if(PD_BAD.test(t))v-=30; if(/IMSLP/.test(t))v+=8; if(/lead ?sheet/i.test(t))v+=10;
+  if(x.mime==='application/pdf'){v+=10; if(x.pages<=6)v+=14; else if(x.pages>16)v-=8}
+  if(/public domain|cc0/i.test(x.lic||''))v+=4; return v;
+}
 async function pdApi(s){
   const u='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(s)+'&gsrnamespace=6&gsrlimit=40&prop=imageinfo&iiprop=url|mime|size|extmetadata&iiurlwidth=500&format=json&origin=*';
   const r=await fetch(u); if(!r.ok)throw new Error('http '+r.status);
@@ -2147,16 +2164,19 @@ async function pdRun(term){
   if(PD.cache[term]){PD.res=PD.cache[term];PD.state='ok';PD.show=12;pdRender();return}
   PD.state='load'; pdRender();
   try{
-    let list=(await pdApi(term+' deepcategory:"Sheet music"')).filter(pdOK);
-    if(list.length<3){const have=new Set(list.map(x=>x.title)); (await pdApi(term+' sheet music')).filter(pdOK).forEach(x=>{if(!have.has(x.title))list.push(x)})}
+    const base=term.replace(/\b(piano|lead sheet)\b/ig,'').replace(/\s+/g,' ').trim()||term;
+    const qs=[term+' deepcategory:"Sheet music"',base+' piano easy',base+' lead sheet',base+' score'];
+    const rs=await Promise.allSettled(qs.map(pdApi)); if(rs.every(r=>r.status==='rejected'))throw rs[0].reason;
+    const seen=new Set(), all=[]; rs.forEach(r=>{if(r.status==='fulfilled')r.value.forEach((x,i)=>{if(seen.has(x.title)||!pdOK(x))return; seen.add(x.title); x._s=pdScore(x,all.length); all.push(x)})});
+    const list=all.sort((a,b)=>b._s-a._s).slice(0,36);
     if(seq!==PD.seq)return;
     PD.cache[term]=list; PD.res=list; PD.state='ok'; PD.show=12; PD.inflight='';
   }catch(e){console.warn(e); if(seq!==PD.seq)return; PD.state='err'; PD.inflight=''}
   pdRender();
 }
 function pdSchedule(now){
-  const q=H.q.trim();
-  if(!q){clearTimeout(PD.t);PD.seq++;PD.want='';PD.inflight='';PD.state='idle';PD.term='';pdRender();return}
+  const q=H.q.trim(); if(q)PD.pop=false;
+  if(!q){clearTimeout(PD.t);PD.seq++;PD.want='';PD.inflight='';PD.state=PD.pop?'pop':'idle';PD.term='';pdRender();return}
   const {term,ko}=pdTerm(q); PD.ko=ko;
   if(term.length<2){clearTimeout(PD.t);PD.seq++;PD.want='';PD.inflight='';PD.state='hint';PD.term='';pdRender();return}
   if(term===PD.want&&(PD.state==='ok'||PD.inflight===term||(PD.state==='load'&&!now))){pdRender();return}
@@ -2168,11 +2188,12 @@ const pdLic=l=>/public domain/i.test(l)?'저작권 풀림':(l||'');
 function pdPrev(url){return url.replace(/(\d+)px-([^/]*)$/,(m,n,r)=>'960px-'+r)}
 function pdRender(){
   const box=$('#hqPD'), sig=PD.state+'|'+PD.term+'|'+PD.show+'|'+PD.res.length+'|'+PD.ko.join(); if(box.dataset.sig===sig&&box.firstChild)return; box.dataset.sig=sig; box.innerHTML=''; if(PD.state==='idle'){box.dataset.sig='';return}
-  const head=el('div','pdhead'); head.append(el('b',null,'저작권이 풀린 공개 악보'),el('span',null,'위키미디어 커먼즈')); box.appendChild(head);
+  const head=el('div','pdhead'); head.append(el('b',null,PD.state==='pop'?'한국에서 많이 찾는 공개 악보':'저작권이 풀린 공개 악보'),el('span',null,PD.state==='pop'?'눌러서 찾아보세요':'피아노·리드시트처럼 보기 쉬운 악보를 먼저 보여줘요')); box.appendChild(head);
+  if(PD.state==='pop'){PD_POP.forEach(([g,items])=>{const h=el('div','pdgroup',g),c=el('div','hchips pdpop'); items.forEach(([l])=>{const b=el('button','hchip',l); b.type='button'; b.onclick=()=>{$('#hqIn').value=l;H.q=l;PD.pop=false;H.searching=true;hRender();pdSchedule(true)}; c.appendChild(b)}); box.append(h,c)}); return}
   const msg=t=>{const d=el('div','pdmsg',t); box.appendChild(d); return d};
   if(PD.state==='hint'){
     const d=msg('공개 악보는 영어나 원어 제목으로 찾아져요. 한글로는 유명한 곡과 작곡가(베토벤, 엘리제를 위하여 등)만 알아들어요.');
-    const c=el('div','hchips'); ['Amazing Grace','엘리제를 위하여','Canon Pachelbel','Silent Night'].forEach(t=>{const b=el('button','hchip',t); b.type='button'; b.onclick=()=>{$('#hqIn').value=t;H.q=t;H.searching=true;hRender();pdSchedule(true)}; c.appendChild(b)}); d.appendChild(c); return;
+    const c=el('div','hchips'); ['어메이징 그레이스','엘리제를 위하여','캐논','고요한 밤'].forEach(t=>{const b=el('button','hchip',t); b.type='button'; b.onclick=()=>{$('#hqIn').value=t;H.q=t;H.searching=true;hRender();pdSchedule(true)}; c.appendChild(b)}); d.appendChild(c); return;
   }
   if(PD.state==='load'){msg('공개 악보를 찾는 중…'); return}
   if(PD.state==='err'){const d=msg('공개 악보 서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요. '); const b=el('button','btn sm','다시 시도'); b.type='button'; b.onclick=()=>pdSchedule(true); d.appendChild(b); return}
@@ -2216,7 +2237,7 @@ $('#pdDlg').addEventListener('click',e=>{if(e.target.id==='pdDlg')pdClose()});
 let hT; const hDebounce=()=>{clearTimeout(hT);hT=setTimeout(hRender,120)};
 $('#hqIn').addEventListener('input',e=>{H.q=e.target.value;if(!H.q.trim()&&!H.lvl&&!H.tag&&!H.key&&H.folder==null)H.searching=false;hDebounce()});
 $('#hqIn').addEventListener('keydown',e=>{e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();H.searching=true;hRender();pdSchedule(true)}else if(e.key==='Escape'){hClear()}});
-function hClear(){H.q='';H.lvl=H.tag=H.key='';H.folder=null;H.searching=false;$('#hqIn').value='';hRender()}
+function hClear(){PD.pop=false;H.q='';H.lvl=H.tag=H.key='';H.folder=null;H.searching=false;$('#hqIn').value='';hRender()}
 $('#hqClear').onclick=()=>{hClear();$('#hqIn').focus()};
 $('#hqGo').onclick=()=>{H.searching=true;hRender();pdSchedule(true)};
 $('#tabLib').onclick=openLib;
