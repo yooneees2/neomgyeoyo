@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='2' y='2' width='60' height='60' rx='18' fill='%23121212'/%3E%3Cpath d='M24 44V21l19-4v22' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='19' cy='44' r='6' fill='white'/%3E%3Ccircle cx='38' cy='40' r='6' fill='white'/%3E%3C/svg%3E">
+<title>넘겨요! – 악보가 알아서 넘어가요</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;700&family=Cormorant+Garamond:ital,wght@0,600;1,600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f5f5f3; --card:#ffffff; --ink:#121212; --soft:#8c8c88;
+  --line:#e6e6e2; --line2:#dadad6; --panel:#e9e9e6; --red:#e5322d;
+  --g1:#f5f5f3; --g2:#e9e9e6; --g3:#b4b4b0; --g4:#5c5c58;
+  --font:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,-apple-system,sans-serif;
+  --disp:'Gowun Dodum','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --r:20px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14.5px;letter-spacing:-0.01em;-webkit-font-smoothing:antialiased}
+h1,h2,h3,.jua{font-family:var(--font);font-weight:700;margin:0;letter-spacing:-0.02em}
+h1,h2,.jua{font-family:var(--disp);font-weight:400}
+button{font:inherit;color:inherit;cursor:pointer;border:0;letter-spacing:inherit}
+.app{max-width:1320px;margin:0 auto;padding:18px 20px 32px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand h1{font-size:32px;font-weight:400;letter-spacing:-0.02em}
+#mascotTop{width:42px;height:42px}
+.brand small{display:block;color:var(--soft);font-size:12px;margin-top:1px}
+.spacer{flex:1}
+.btn{background:#fff;border-radius:999px;padding:9px 16px;border:1px solid var(--line2);font-weight:500;transition:background .15s,transform .08s,border-color .15s}
+.btn:hover{background:var(--g1);border-color:var(--g3)}
+.btn:active{transform:scale(.97)}
+.btn.pink{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.pink:hover{background:#2a2a28}
+.btn.mint{background:var(--g1);border-color:var(--line2)}
+.btn.sm{padding:6px 14px;font-size:13px;border-radius:999px}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--line);padding:16px 18px}
+.card h3{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:6px;text-transform:none}
+.side{display:flex;flex-direction:column;gap:14px}
+
+/* stage */
+#stage{
+  position:relative;height:calc(100vh - 150px);min-height:460px;
+  background:var(--panel);border-radius:28px;border:2px solid transparent;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  transition:box-shadow .08s,border-color .08s;
+}
+#stage.beat{border-color:rgba(229,50,45,.35)}
+#stage.beat.accent{border-color:var(--red);box-shadow:0 0 0 4px rgba(229,50,45,.22)}
+#paper{position:relative;display:none;background:#fff;border-radius:4px;box-shadow:0 18px 44px rgba(0,0,0,.16)}
+#cv{display:block;border-radius:4px}
+#tapL,#tapR{position:absolute;top:0;bottom:0;width:28%;z-index:2}
+#tapL{left:0;cursor:w-resize}#tapR{right:0;cursor:e-resize}
+#paper.memomode #tapL,#paper.memomode #tapR{display:none}
+#paper.memomode{cursor:crosshair;outline:3px dashed #fff;outline-offset:4px}
+.pin{position:absolute;z-index:4;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:var(--ink);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;animation:pop .22s}
+.pin:hover{transform:translate(-50%,-50%) scale(1.2)}
+@keyframes pop{from{transform:translate(-50%,-50%) scale(0)}to{transform:translate(-50%,-50%) scale(1)}}
+#pop{position:absolute;z-index:6;display:none;width:220px;background:#fff;border:1px solid var(--line2);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.3)}
+#pop textarea{width:100%;height:72px;border:1px solid var(--line);border-radius:10px;padding:8px;resize:none;font:inherit;background:var(--g1)}
+#pop .row{display:flex;justify-content:space-between;margin-top:6px}
+.navbtn{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:48px;height:48px;border-radius:50%;background:#fff;color:var(--ink);font-size:24px;line-height:1;border:0;box-shadow:0 6px 18px rgba(0,0,0,.18);transition:transform .1s,background .15s}
+.navbtn:hover{background:var(--g1)}
+.navbtn:active{transform:translateY(-50%) scale(.92)}
+#prevBtn{left:14px}#nextBtn{right:14px}
+.pager{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:10px;align-items:center;background:#fff;color:var(--ink);border-radius:999px;padding:6px 8px 6px 16px;border:1px solid var(--line2);box-shadow:0 6px 18px rgba(0,0,0,.1)}
+.pager .btn{background:transparent;color:var(--ink);border-color:var(--line2)}
+.pager .btn:hover{background:var(--g1)}
+.pager b{font-weight:700;font-size:15px}
+.welcome{text-align:left;padding:24px 40px;width:100%;max-width:760px;color:var(--ink)}
+.welcome .brandmini{display:flex;align-items:center;gap:12px;font-family:var(--disp);font-size:28px;margin-bottom:6px}
+.welcome .hnote{height:.78em;width:auto;margin-left:.08em;vertical-align:-.02em}
+.welcome .hero{position:relative;height:190px;margin-bottom:14px}
+.welcome .hero::before{content:'';position:absolute;left:-200px;right:-200px;top:34px;height:146px;background:repeating-linear-gradient(to bottom,var(--line2) 0 1.5px,transparent 1.5px 36px)}
+.welcome h2{position:relative;font-family:var(--disp);font-weight:400;font-size:min(172px,19vw);line-height:1;letter-spacing:-0.05em;margin:0}
+.welcome .sub{font-family:var(--disp);font-size:30px;line-height:1.3;color:var(--ink);margin:0 0 12px}
+.welcome p{color:var(--soft);line-height:1.75;margin:0;font-size:16px}
+.welcome p b{color:var(--ink);font-weight:500}
+.welcome .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.welcome .btn{padding:13px 26px;font-size:16px;font-weight:700}
+#drop{position:absolute;inset:0;background:rgba(18,18,18,.06);border:2px dashed var(--ink);border-radius:28px;display:none;align-items:center;justify-content:center;font-size:24px;font-weight:700;z-index:20;color:var(--ink)}
+
+/* mark (logo) */
+.mascot{width:44px;height:44px;flex:none}
+.mascot svg{width:100%;height:100%;overflow:visible;display:block}
+.mascot.listening svg{animation:pulse 1.3s ease-in-out infinite}
+.mascot .mk{fill:var(--ink)}
+@keyframes pulse{50%{transform:scale(1.08)}}
+.mascot.turn svg{animation:flip .5s}
+@keyframes flip{40%{transform:rotate(-10deg) scale(1.08)}}
+.bubble{position:absolute;left:18px;top:18px;z-index:7;max-width:70%;background:var(--red);color:#fff;border-radius:999px;padding:9px 22px;display:none;font-family:var(--disp);font-size:22px;box-shadow:0 8px 20px rgba(229,50,45,.3)}
+#listenPill{display:none;align-items:center;gap:9px;background:var(--red);color:#fff;border-radius:999px;padding:8px 16px 8px 14px;font-weight:700;font-size:14px}
+#listenPill i{display:flex;gap:3px;align-items:center;height:18px}
+#listenPill i b{display:block;width:3.5px;height:100%;background:#fff;border-radius:2px;animation:bar 1s ease-in-out infinite}
+#listenPill i b:nth-child(2){animation-delay:.15s}#listenPill i b:nth-child(3){animation-delay:.3s}#listenPill i b:nth-child(4){animation-delay:.45s}
+@keyframes bar{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion:reduce){#listenPill i b{animation:none}}
+
+/* toggles */
+.opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.opt:first-of-type{border-top:0}
+.opt small{display:block;color:var(--soft);margin-top:1px}
+.sw{position:relative;width:44px;height:26px;flex:none}
+.sw input{opacity:0;width:0;height:0}
+.sw span{position:absolute;inset:0;background:var(--line2);border-radius:999px;transition:.15s;cursor:pointer}
+.sw span::after{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw input:checked+span{background:var(--ink)}
+.sw input:checked+span::after{left:21px}
+.sw input:disabled+span{opacity:.45;cursor:not-allowed}
+.tag{display:inline-block;background:var(--g1);color:var(--g4);border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:12px;font-weight:500}
+.modeBox{background:var(--g1);border-radius:12px;padding:9px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+/* metronome */
+.bpmRow{display:flex;align-items:center;justify-content:center;gap:14px}
+.bpm{font-size:52px;font-weight:800;letter-spacing:-0.05em;min-width:110px;text-align:center;line-height:1;font-variant-numeric:tabular-nums}
+.round{width:36px;height:36px;border-radius:50%;background:var(--g1);border:1px solid var(--line2);font-size:18px;line-height:1}
+.round:hover{background:var(--g2)}
+.round:active{transform:scale(.92)}
+input[type=range]{width:100%;accent-color:var(--ink);margin:10px 0}
+.dots{display:flex;gap:8px;justify-content:center;margin:6px 0 12px;min-height:22px;align-items:center}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--g2);transition:.06s}
+.dot.on{background:var(--g4);transform:scale(1.3)}
+.dot.on.acc{background:var(--red);transform:scale(1.6)}
+.chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+.chip{background:var(--g1);border:1px solid var(--line);border-radius:999px;padding:4px 13px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mrow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center}
+
+/* memo */
+textarea.note{width:100%;height:68px;border:1px solid var(--line2);background:var(--g1);border-radius:12px;padding:10px;font:inherit;resize:vertical}
+textarea.note:focus,#pop textarea:focus{outline:2px solid var(--ink);outline-offset:-1px}
+#memoList{margin:10px 0 0;padding:0;list-style:none;max-height:180px;overflow:auto}
+#memoList li{background:var(--g1);border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer;display:flex;gap:8px;align-items:center}
+#memoList li:hover{background:var(--g2)}
+#memoList b{flex:none;font-weight:700}
+.empty{color:var(--soft);text-align:center;padding:6px}
+
+/* modal + toast */
+#modal,#libModal,#folderDlg{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.mbox{background:#fff;border-radius:28px;padding:26px;max-width:520px;width:100%;text-align:center}
+.mbox h2{font-size:28px;font-weight:400;letter-spacing:-0.02em;margin-top:10px}
+.choices{display:grid;gap:10px;margin:18px 0 6px}
+.choice{background:#fff;border:1px solid var(--line2);border-radius:16px;padding:14px 16px;text-align:left}
+.choice:hover{border-color:var(--ink);background:var(--g1)}
+.choice b{font-size:16px;display:block;font-weight:700}
+.choice small{color:var(--soft)}
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,30px);opacity:0;background:var(--ink);color:#fff;padding:11px 20px;border-radius:12px;z-index:60;transition:.25s;pointer-events:none;max-width:90vw;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+.brand{cursor:pointer}
+#landing{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(0,.82fr);gap:40px;align-items:center;min-height:calc(100vh - 130px);padding:8px 0 24px}
+@media (max-width:900px){#landing{grid-template-columns:1fr;gap:28px}}
+.lleft.welcome{padding:0;max-width:none;position:relative}
+.lleft .hero::before{left:-60px;right:-48px}
+.lright{position:relative}
+.dock{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:44px;background:#fff;border:1.5px solid var(--line2);border-radius:32px;padding:11px 16px;width:fit-content;max-width:100%}
+@media (max-width:700px){.welcome .hero{height:auto;margin-bottom:10px}.welcome .hero::before{display:none}.dsep{display:none}}
+.dsep{width:1.5px;height:28px;background:var(--line2)}
+.dvoice{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--ink);border-radius:999px;padding:9px 18px;font-weight:700;font-size:14px}
+.dvoice i{display:none;gap:3px;align-items:center;height:18px}
+.dvoice i b{display:block;width:3.5px;height:100%;background:#fff;border-radius:2px;animation:bar 1s ease-in-out infinite}
+.dvoice i b:nth-child(2){animation-delay:.15s}.dvoice i b:nth-child(3){animation-delay:.3s}.dvoice i b:nth-child(4){animation-delay:.45s}
+.dvoice.on{background:var(--red);border-color:var(--red);color:#fff}
+.dvoice.on i{display:flex}
+.dmet{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+.dmet .btn{white-space:nowrap}
+.dbpm{font-family:var(--disp);font-size:24px;min-width:42px;text-align:center;font-variant-numeric:tabular-nums}
+.dmet .dots{margin:0 4px;min-height:0;gap:7px}
+.dmet .dot{width:12px;height:12px;border:2px solid var(--line2);background:#fff}
+.dmet .dot.on{background:var(--g4);border-color:var(--g4);transform:scale(1.15)}
+.dmet .dot.on.acc{background:var(--red);border-color:var(--red);transform:scale(1.3)}
+.drec{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1.5px solid var(--ink);border-radius:999px;padding:9px 18px;font-weight:700;font-size:14px}
+.drec{min-width:96px;justify-content:center}
+.drec .recDot{width:11px;height:11px}
+.drec.on{background:var(--red);border-color:var(--red);color:#fff}
+.drec.on .recDot{background:#fff;animation:blinkdot 1s infinite}
+#dockRecTime{font-variant-numeric:tabular-nums;font-weight:500}
+
+/* tabs */
+.tabs{display:flex;gap:28px;margin-left:24px}
+.tabs .btn,.tabs .btn.sm{border:0;background:transparent;border-radius:0;padding:8px 0;font-size:17px;color:var(--soft);font-weight:500;border-bottom:3px solid transparent}
+.tabs .btn:hover{background:transparent;color:var(--ink)}
+.tabs .btn.on{background:transparent;color:var(--ink);font-weight:700;border-bottom-color:var(--red);box-shadow:none}
+
+/* chord mode */
+#chordView{position:absolute;inset:0;overflow:auto;padding:34px 84px 96px;background:#fff;
+  font-family:'D2Coding','Nanum Gothic Coding',ui-monospace,Menlo,Consolas,monospace;font-size:19px;line-height:1.6;white-space:pre-wrap;display:none;color:var(--ink)}
+#chordView .ctitle{font-family:var(--disp);font-size:34px;font-weight:400;letter-spacing:-0.02em;text-align:left;margin-bottom:18px}
+#chordView .sec{display:inline-block;background:var(--ink);color:#fff;border-radius:6px;padding:0 10px;margin:18px 0 6px;font-family:var(--font);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+#chordView .cl{color:var(--red);font-weight:800}
+#chordView .ic{color:var(--red);font-weight:800;background:#fdecea;border-radius:5px;padding:0 4px;margin:0 1px}
+#chordEdit{position:absolute;inset:0;z-index:8;background:#fff;padding:18px;display:none;flex-direction:column;gap:10px}
+#chordEdit textarea{flex:1;border:1px solid var(--line2);border-radius:14px;padding:14px;font-family:'D2Coding','Nanum Gothic Coding',ui-monospace,Menlo,Consolas,monospace;font-size:16px;resize:none;background:var(--g1)}
+#chordEdit textarea:focus{outline:2px solid var(--ink);outline-offset:-1px}
+#chordEdit .hint{color:var(--soft);font-size:13px;line-height:1.6}
+.keyShow{display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:10px;text-align:center}
+.keyShow small{display:block;color:var(--soft);font-size:12px}
+.keyShow b{font-family:var(--disp);font-size:40px;font-weight:400;letter-spacing:-0.02em}
+.keyStrip{position:relative;display:flex;gap:6px;overflow-x:auto;padding:6px 2px 12px;margin-bottom:6px;scroll-snap-type:x proximity}
+.keyStrip::-webkit-scrollbar{height:5px}.keyStrip::-webkit-scrollbar-thumb{background:var(--line2);border-radius:99px}
+.kchip{flex:none;min-width:58px;background:#fff;border:1px solid var(--line2);border-radius:22px;padding:7px 8px;text-align:center;scroll-snap-align:center}
+.kchip small{display:block;color:var(--soft);font-size:11px}
+.kchip b{font-size:18px;font-weight:700;letter-spacing:-0.03em}
+.kchip:hover{background:var(--g2)}
+.kchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.kchip.on small{color:#cfcfcb}
+.kchip.orig:not(.on){border:1px dashed var(--g4);background:#fff}
+select{font:inherit;border:1px solid var(--line2);border-radius:10px;padding:5px 8px;background:#fff;color:var(--ink);max-width:190px}
+.keys{color:var(--soft);font-size:12.5px;line-height:1.75}
+.recRow{display:flex;align-items:center;gap:12px}
+.recBtn{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;border:1px solid var(--ink);border-radius:999px;padding:11px 14px;font-weight:700}
+.recBtn:hover{background:var(--g1)}
+.recBtn.on{background:var(--red);border-color:var(--red);color:#fff}
+.recDot{width:12px;height:12px;border-radius:50%;background:var(--red)}
+.recBtn.on .recDot{background:#fff;animation:blinkdot 1s infinite}
+@keyframes blinkdot{50%{opacity:.25}}
+.recTime{font-size:26px;font-weight:800;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;min-width:64px;text-align:right}
+.recMeter{height:6px;background:var(--g2);border-radius:99px;margin-top:10px;overflow:hidden}
+.recMeter i{display:block;height:100%;width:0;background:var(--red);transition:width .08s}
+#trimDlg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:80;align-items:center;justify-content:center;padding:16px}
+.trimBox{background:#fff;border-radius:24px;padding:22px;width:min(760px,100%)}
+.trimBox h3{margin:0 0 12px;font-size:18px}
+.trimWave{background:var(--g1);border-radius:14px;padding:6px;touch-action:none}
+#trimCv{width:100%;height:120px;display:block;cursor:ew-resize}
+.trimTimes{display:flex;justify-content:space-between;margin-top:10px;font-variant-numeric:tabular-nums;color:var(--g4);font-size:14px}
+.trimTimes b{color:var(--ink)}
+.trimHint{font-size:13px;color:var(--soft);margin-top:8px}
+.trimBtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+#recCard{padding:12px 14px}
+#recCard .recBtn{padding:7px 12px;font-size:14px}
+#recCard .recTime{font-size:18px;min-width:48px}
+#recCard .recMeter{margin-top:8px}
+#recLib{background:#fff;border-radius:28px;padding:24px;min-height:300px}
+#recLib #takeList{max-height:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:0}
+#recLib #takeList li{margin:0}
+#recLib #takeList li.empty{grid-column:1/-1;text-align:center;color:var(--soft);padding:60px 0}
+#takeList{list-style:none;margin:10px 0 0;padding:0;max-height:300px;overflow:auto}
+#takeList li{background:var(--g1);border-radius:12px;padding:10px;margin-bottom:8px}
+#takeList .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px}
+#takeList audio{width:100%;height:34px}
+#takeList .bt{display:flex;gap:6px;margin-top:6px;justify-content:flex-end}
+kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding:0 6px;font-family:inherit;font-size:12px}
+.score-upload{width:100%;aspect-ratio:588/680;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px 20px;border:2px dashed var(--g3);border-radius:28px;background:var(--panel);color:var(--ink);text-align:center;font-family:inherit;transition:background .18s,border-color .18s,box-shadow .18s,transform .18s}
+.score-upload:hover,.score-upload.dragging{background:#fff;border-color:var(--red)}
+.score-upload.dragging{box-shadow:0 0 0 6px rgba(229,50,45,.12);transform:scale(1.01)}
+.score-upload:focus-visible{outline:3px solid var(--red);outline-offset:5px}
+.score-upload *{pointer-events:none}
+.score-upload-plus{display:flex;align-items:center;justify-content:center;width:96px;height:96px;border-radius:50%;background:#fff;color:var(--red);box-shadow:0 6px 18px rgba(0,0,0,.08);transition:transform .18s}
+.score-upload-plus svg{width:44px;height:44px}
+.score-upload:hover .score-upload-plus,.score-upload.dragging .score-upload-plus{transform:scale(1.08)}
+.score-upload strong{font-family:var(--disp);font-size:28px;font-weight:400;letter-spacing:-0.02em}
+.score-upload-help{font-size:16px;line-height:1.6;color:var(--g4)}
+.score-upload-format{font-size:14px;color:var(--soft)}
+@media (max-width:900px){.score-upload{aspect-ratio:auto;min-height:300px}}
+@media (max-width:480px){.score-upload{min-height:260px;padding:24px 16px;border-radius:22px}.score-upload-plus{width:76px;height:76px}.score-upload-plus svg{width:34px;height:34px}.score-upload strong{font-size:24px}.score-upload-help{font-size:14px}}
+@media (prefers-reduced-motion:reduce){.score-upload,.score-upload-plus{transition:none}}
+#paper.editmode #tapL,#paper.editmode #tapR{display:none}
+#editLayer{position:absolute;inset:0;z-index:4;cursor:copy}
+.ebox{position:absolute;min-width:22px;min-height:22px;padding:0;border:1.5px dashed var(--red);background:rgba(229,50,45,.08);border-radius:5px;color:var(--red);font-size:11px;font-weight:700;line-height:1;cursor:pointer}
+.ebox:hover,.ebox:focus-visible{background:rgba(229,50,45,.22);outline:2px solid var(--red)}
+.ebox.added{background:rgba(229,50,45,.14)}
+.cpop{position:absolute;z-index:6;display:flex;gap:6px;align-items:center;background:#fff;border:1px solid var(--line2);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.25);cursor:default}
+.cpop input{width:100px;border:1px solid var(--line2);border-radius:10px;padding:6px 8px;font:inherit;background:var(--g1)}
+.cpop input:focus{outline:2px solid var(--ink);outline-offset:-1px}
+.fdbox{max-width:380px;text-align:left}
+.fdbox h2{font-size:24px;margin:0 0 12px}
+.fdbox input{width:100%;border:1px solid var(--line2);border-radius:12px;padding:11px 14px;font:inherit;background:var(--g1)}
+.fdbox input:focus{outline:2px solid var(--ink);outline-offset:-1px}
+.fdbox .err{color:var(--red);font-size:13px;min-height:20px;margin-top:6px}
+.fdbox .row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+#folderDlg{z-index:55}
+.libbox{max-width:860px;min-height:min(520px,84vh);max-height:88vh;text-align:left;display:flex;flex-direction:column;gap:12px}
+.libhd{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+#pgPart{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.libhd h2{margin:0;font-size:28px}
+.libchips{display:flex;gap:6px;flex-wrap:wrap}
+.libtools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.libtools input{flex:1;min-width:120px;border:1px solid var(--line2);border-radius:999px;padding:7px 14px;font:inherit;background:var(--g1)}
+#libList{list-style:none;margin:0;padding:0;overflow:auto;display:flex;flex-direction:column;gap:8px}
+#libList li{background:var(--g1);border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#libList .info{flex:1;min-width:160px}
+#libList .info b{display:block;font-weight:700;word-break:break-all}
+#libList .info small{color:var(--soft)}
+#libList .renin{width:100%;border:1px solid var(--ink);border-radius:10px;padding:6px 10px;font:inherit;font-weight:700;background:#fff}
+#libList .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.libtitle{display:flex;align-items:center;gap:12px;min-width:0}
+.libhdr{display:flex;gap:8px;align-items:center}
+.libgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;overflow:auto;padding:2px}
+.ftile{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--g1);border:1.5px solid var(--line);border-radius:20px;padding:18px 10px 14px;text-align:center;font:inherit;color:var(--ink);transition:border-color .15s,background .15s,transform .1s}
+.ftile:hover{border-color:var(--ink);background:#fff}
+.ftile:active{transform:scale(.97)}
+.ftile:focus-visible{outline:3px solid var(--red);outline-offset:3px}
+.ftile svg{width:72px;height:58px;margin-bottom:4px}
+.ftile .fb{fill:#b4b4b0}.ftile .ff{fill:#dadad6}
+.ftile:hover .fb{fill:#8c8c88}
+.ftile b{font-weight:700;word-break:break-all;line-height:1.3}
+.ftile small{color:var(--soft)}
+.ftile.new{background:transparent;border:2px dashed var(--g3);justify-content:center;min-height:150px}
+.ftile.new:hover{border-color:var(--red);background:#fff;color:var(--red)}
+.ftile.new .plus{width:56px;height:56px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--red);margin-bottom:6px}
+.ftile.new .plus svg{width:26px;height:26px;margin:0}
+.libgrid .empty{grid-column:1/-1}
+.ftile{position:relative}
+.ftile .ico{height:80px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.ftile .ico svg{margin:0}
+.ftile.score{cursor:pointer}
+.ftile.score:focus-visible{outline:3px solid var(--red);outline-offset:3px}
+.thumb{width:57px;height:80px;border-radius:5px;border:1px solid var(--line2);background:#fff;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;color:var(--g3);font-size:11px;font-weight:700}
+.thumb img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;pointer-events:none}
+.ftile.score.dragging{opacity:.4}
+.ftile .more{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid var(--line2);font-size:16px;line-height:1;padding:0;color:var(--ink)}
+.ftile .more:hover{background:var(--g1)}
+.smenu{position:absolute;z-index:8;top:36px;right:6px;display:flex;flex-direction:column;gap:6px;min-width:150px;background:#fff;border:1px solid var(--line2);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.22);text-align:left}
+.smenu .btn,.smenu select{width:100%;text-align:left;max-width:none}
+.ftile .renin{width:100%;border:1px solid var(--ink);border-radius:10px;padding:5px 8px;font:inherit;font-weight:700;background:#fff;text-align:center}
+.ftile.score b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ftile.over,#libBack.over{border-color:var(--red);background:#fff;box-shadow:0 0 0 4px rgba(229,50,45,.14)}
+.ftile.sel{border-color:var(--ink);background:#fff;box-shadow:0 0 0 3px rgba(18,18,18,.12)}
+.ftile .chk{position:absolute;top:10px;left:10px;width:22px;height:22px;border-radius:50%;border:2px solid var(--g3);background:#fff;color:#fff;font-size:13px;line-height:18px;font-weight:700}
+.ftile.sel .chk{background:var(--ink);border-color:var(--ink)}
+.libbox.filedrag{outline:3px dashed var(--red);outline-offset:-10px}
+#libList li.dragging{opacity:.4}
+#libList .grip{color:var(--g3);cursor:grab;font-size:20px;line-height:1;user-select:none;flex:none}
+#libList .pick{width:20px;height:20px;accent-color:var(--ink);flex:none}
+@media (max-width:480px){.ftile .ico{height:66px}.thumb{width:47px;height:66px}.libhd h2{font-size:24px}.libgrid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}.ftile svg{width:56px;height:46px}.ftile.new{min-height:120px}}
+#setSide{display:none;flex-direction:column;height:calc(100vh - 150px);min-height:460px;overflow:hidden;padding:14px 10px}
+#setSide h3{padding:0 6px}
+#setList{list-style:none;margin:0;padding:4px 2px;overflow:auto;display:flex;flex-direction:column;gap:12px;flex:1}
+#setList li{position:relative;display:flex;align-items:center;gap:6px;flex:none}
+#setList .pg{position:relative;flex:1;min-width:0;display:block;padding:0;background:#fff;border:2px solid var(--line2);border-radius:6px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.08);aspect-ratio:210/297;cursor:pointer}
+#setList .pg img{display:block;width:100%;height:100%;object-fit:contain;background:#fff;pointer-events:none}
+#setList .pg:hover{border-color:var(--g4)}
+#setList .pg:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+#setList li.on .pg{border-color:var(--ink);box-shadow:0 0 0 3px var(--ink),0 6px 14px rgba(0,0,0,.2)}
+#setList .num{position:absolute;left:6px;top:6px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--ink);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+#setList li.dragging{opacity:.4}
+#setList li.before::before,#setList li.after::after{content:'';position:absolute;left:0;right:0;height:4px;border-radius:2px;background:var(--red);z-index:3}
+#setList li.before::before{top:-8px}#setList li.after::after{bottom:-8px}
+@media (min-width:901px){main.hasSet{grid-template-columns:230px minmax(0,1fr) 360px}}
+@media (max-width:900px){#setSide{height:auto;min-height:0}#setList{flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:14px;padding:6px 4px 10px}#setList li{width:104px}#setList li.before::before,#setList li.after::after{top:0;bottom:0;width:4px;height:auto;left:auto;right:auto}#setList li.before::before{left:-9px}#setList li.after::after{right:-9px}</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand">
+    <div class="mascot" id="mascotTop"></div>
+    <div><h1>넘겨요!</h1></div>
+  </div>
+  <div class="tabs">
+    <button class="btn sm on" id="tabTurn">악보 넘기기</button>
+    <button class="btn sm" id="tabKey">키 바꾸기</button>
+    <button class="btn sm" id="tabRec">녹음함</button>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" id="textModeBtn" style="display:none">코드 텍스트 입력</button>
+  <span id="listenPill"><i><b></b><b></b><b></b><b></b></i><span id="pillTxt">듣는 중</span></span>
+  <button class="btn" id="libBtn">내 악보함</button>
+  <button class="btn pink" id="openBtn">악보 열기</button>
+  <input type="file" id="file" accept="application/pdf,image/*" multiple hidden>
+</header>
+
+<section id="landing">
+  <div class="welcome lleft">
+    <div class="hero"><h2 aria-label="넘겨">넘겨<svg class="hnote" viewBox="10 12 38 42" aria-hidden="true"><path d="M24 44V21l19-4v22" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="44" r="6" fill="currentColor"/><circle cx="38" cy="40" r="6" fill="currentColor"/></svg></h2></div>
+    <div class="sub">악보는 눈으로, 페이지는 목소리로.</div>
+    <p>연주하는 손을 멈추지 않아도 돼요.<br>"넘겨!"라고 말하면 다음 장이 열려요.</p>
+    <div class="btns"><button class="btn pink" id="openBtn2">악보 열기</button><button class="btn" id="libBtn2">내 악보함</button></div>
+  </div>
+  <div class="lright">
+    <button type="button" class="score-upload" id="scoreUpload">
+      <span class="score-upload-plus" aria-hidden="true"><svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M22 6v32M6 22h32"/></svg></span>
+      <strong>악보 추가하기</strong>
+      <span class="score-upload-help">클릭하거나 악보를 여기에 끌어다 놓으세요</span>
+      <span class="score-upload-format">PDF · 이미지 파일</span>
+    </button>
+  </div>
+</section>
+
+<main>
+  <aside id="setSide" class="card" aria-label="악보 순서" style="display:none">
+    <h3>악보 순서</h3>
+    <div class="keys" style="margin-bottom:8px">악보를 눌러 이동하고, 끌거나 ▲▼로 순서를 바꿔요</div>
+    <ol id="setList"></ol>
+  </aside>
+  <section>
+    <div id="stage">
+      <button type="button" class="score-upload" id="keyUpload" style="display:none;position:absolute;inset:6% 12%;width:auto;aspect-ratio:auto;z-index:3">
+        <span class="score-upload-plus" aria-hidden="true"><svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M22 6v32M6 22h32"/></svg></span>
+        <strong>악보 추가하기</strong>
+        <span class="score-upload-help">클릭하거나 악보를 여기에 끌어다 놓으세요</span>
+        <span class="score-upload-format">PDF · 이미지 파일</span>
+      </button>
+      <div id="drop">악보를 여기에 놓아 주세요 </div>
+      <div class="bubble" id="bubble"></div>
+      <div id="chordView"></div>
+      <div id="chordBar" style="position:absolute;right:80px;top:12px;z-index:6;display:none;gap:8px"><button class="btn sm" id="chordBackBtn">← 악보 파일로</button><button class="btn sm mint" id="chordEditBtn">코드 입력·수정</button></div>
+      <div id="chordEdit">
+        <div class="jua" style="font-size:22px;color:var(--ink)">코드 악보 입력</div>
+        <div class="hint">① 가사 <b>윗줄</b>에 코드를 쓰거나 ② 가사 사이에 <b>[C]</b>처럼 넣어도 돼요. 제목은 <b># 제목</b>, 구간은 <b>[Verse]</b>처럼 한 줄로 적어요.</div>
+        <textarea id="chordText" spellcheck="false"></textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn sm" id="chordSample">샘플 넣기</button>
+          <button class="btn sm pink" id="chordApply">적용</button>
+        </div>
+      </div>
+
+      <div id="paper">
+        <canvas id="cv"></canvas>
+        <div id="tapL" title="이전 페이지"></div>
+        <div id="tapR" title="다음 페이지"></div>
+      </div>
+
+      <button class="navbtn" id="prevBtn" title="이전 (←)">‹</button>
+      <button class="navbtn" id="nextBtn" title="다음 (→ / Space)">›</button>
+      <div class="pager" id="pager" style="display:none">
+        <button class="btn sm" id="firstBtn">처음</button>
+        <span><b id="pgNow">1</b> / <span id="pgAll">1</span></span><span class="tag" id="pgPart" style="display:none"></span>
+      </div>
+    </div>
+    <div id="recLib" style="display:none"><h2 class="jua" style="font-size:24px;margin:0 0 14px">녹음함</h2><ul id="takeList"></ul></div>
+  </section>
+
+  <aside class="side">
+    <!-- 입력 방식 -->
+    <div class="card">
+      <h3>넘기는 방법</h3>
+      <div class="opt"><div>음성으로 "넘겨!"<small id="voiceHint">끄는 중이에요</small></div>
+        <label class="sw"><input type="checkbox" id="tgVoice"><span></span></label></div>
+      <div class="opt"><div>윙크로 넘기기 <span class="tag">준비 중 </span><small>입을 쓰는 악기용 (다음 버전)</small></div>
+        <label class="sw"><input type="checkbox" id="tgWink" disabled><span></span></label></div>
+      <div class="opt"><div>키보드 · 화면 탭<small>항상 켜져 있어요</small></div><span class="tag">기본</span></div>
+    </div>
+
+    <!-- 키 바꾸기 (코드 악보 모드) -->
+    <div class="card" id="keyCard" style="display:none">
+      <h3>키 바꾸기</h3>
+      <div class="keys" id="detectInfo" style="margin-bottom:8px">악보를 열면 코드를 자동으로 찾아요</div>
+      <div class="opt" id="optEdit"><div>읽은 코드 고치기<small>잘못 읽은 코드를 누르면 고치고, 빈 곳을 누르면 코드를 추가해요</small></div>
+        <label class="sw"><input type="checkbox" id="tgEdit" aria-label="읽은 코드 고치기"><span></span></label></div>
+      <div class="keyShow">
+        <div><small>원래 키</small><b id="kOrig">C</b></div><span style="font-size:24px">→</span>
+        <div><small>소리 나는 키</small><b id="kNow">C</b></div>
+      </div>
+      <div class="keys" style="margin-bottom:2px">원하는 키를 눌러 보세요 (옆으로 밀어서 더 보기)</div>
+      <div class="keyStrip" id="keyStrip"></div>
+      <div class="mrow">
+        <button class="round" id="kDown">−</button><span class="tag" id="kOff">±0</span><button class="round" id="kUp">+</button>
+        <button class="btn sm" id="kReset">↺ 원래대로</button>
+      </div>
+      <div class="opt"><div>원래 키 직접 선택<small>자동으로 맞췄어요</small></div><select id="kOrigSel"></select></div>
+      <div class="opt"><div>카포<small>화면 코드를 카포 기준으로</small></div>
+        <select id="capoSel"><option value="0">없음</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></div>
+      <div class="opt"><div>내 악기<small>읽는 코드를 바꿔 보여줘요</small></div>
+        <select id="instSel"><option value="0">소리 그대로 (기타·피아노·보컬)</option><option value="2">Bb 악기 (클라리넷·트럼펫·테너색소폰)</option><option value="9">Eb 악기 (알토·바리톤 색소폰)</option><option value="7">F 악기 (호른)</option></select></div>
+      <div class="keys" id="keyTip" style="margin-top:6px"></div>
+      <button class="btn pink" id="saveKeyPdf" style="width:100%;margin-top:12px">바뀐 악보 PDF로 저장</button>
+      <div class="keys" style="margin-top:6px;text-align:center">키를 바꾼 뒤 눌러요. 저장한 PDF는 그림이라 글자 선택은 안 돼요</div>
+    </div>
+
+    <!-- 메트로놈 -->
+    <div class="card">
+      <h3>메트로놈</h3>
+      <div class="bpmRow">
+        <button class="round" id="bpmMinus">−</button>
+        <div class="bpm" id="bpmVal">80</div>
+        <button class="round" id="bpmPlus">+</button>
+      </div>
+      <input type="range" id="bpmRange" min="30" max="240" value="80">
+      <div class="dots" id="dots"></div>
+      <div class="chips" id="beatChips"></div>
+      <div class="mrow">
+        <button class="btn pink" id="metBtn">▶ 시작</button>
+        <button class="btn" id="tapTempo">탭 템포</button>
+        <button class="btn" id="soundBtn">소리</button>
+      </div>
+    </div>
+
+    <!-- 녹음 -->
+    <div class="card" id="recCard">
+      <div class="recRow">
+        <button class="recBtn" id="recBtn"><span class="recDot"></span><span id="recLabel">녹음 시작</span></button>
+        <div class="recTime" id="recTime">0:00</div>
+      </div>
+      <div class="recMeter"><i id="recLevel"></i></div>
+    </div>
+  </aside>
+</main>
+</div>
+
+<div id="trimDlg" role="dialog" aria-modal="true" aria-label="녹음 자르기" style="display:none">
+  <div class="trimBox">
+    <h3 id="trimTitle">녹음 자르기</h3>
+    <div class="trimWave"><canvas id="trimCv" width="900" height="160"></canvas></div>
+    <div class="trimTimes"><span>시작 <b id="trimS">0:00.0</b></span><span>길이 <b id="trimL">0:00.0</b></span><span>끝 <b id="trimE">0:00.0</b></span></div>
+    <div class="trimHint">파란 손잡이를 끌어 구간을 고르세요</div>
+    <div class="trimBtns">
+      <button class="btn sm" id="trimPlay" type="button">▶ 선택 구간 듣기</button>
+      <button class="btn sm pink" id="trimKeep" type="button">선택한 부분만 남기기</button>
+      <button class="btn sm" id="trimDel" type="button">선택한 부분 지우기</button>
+      <button class="btn sm" id="trimClose" type="button">닫기</button>
+    </div>
+    <div class="trimHint" id="trimMsg"></div>
+  </div>
+</div>
+<div id="modal">
+  <div class="mbox">
+    <div class="mascot" id="mascotModal" style="width:90px;height:90px;margin:0 auto"></div>
+    <h2>어떻게 연주하세요?</h2>
+    <div style="color:var(--soft)">연주 방식에 맞는 넘기기 방법을 추천해 드려요</div>
+    <div class="choices">
+      <button class="choice" data-mode="free"><b>입은 자유로워요</b><small>기타 · 피아노 · 현악기 → 음성으로 "넘겨!"를 추천해요</small></button>
+      <button class="choice" data-mode="mouth"><b>입을 써요</b><small>관악기 · 보컬 → 윙크·시선(준비 중)과 탭·키보드를 추천해요</small></button>
+      <button class="choice" data-mode="later"><b>나중에 고를래요</b><small>지금은 키보드와 탭으로 쓸게요</small></button>
+    </div>
+  </div>
+</div>
+<div id="libModal" role="dialog" aria-modal="true" aria-labelledby="libTitle">
+  <div class="mbox libbox">
+    <div class="libhd">
+      <div class="libtitle"><button class="btn sm" id="libBack" type="button" style="display:none">← 내 악보함</button><h2 id="libTitle">내 악보함</h2></div>
+      <div class="libhdr"><button class="btn sm pink" id="libPlay" type="button" style="display:none">순서대로 보기</button><button class="btn sm" id="libDelFolder" type="button" style="display:none">삭제</button><button class="btn sm" id="libSelBtn" type="button">선택</button><button class="btn sm" id="libClose" type="button">닫기</button></div>
+    </div>
+    <div class="libtools" id="libTools"><input id="libSearch" type="search" placeholder="폴더 검색" aria-label="폴더 검색" autocomplete="off"></div>
+    <div class="libgrid" id="libGrid"></div>
+    <div class="keys" id="libHint"></div>
+    <ul id="libList"></ul>
+  </div>
+</div>
+<div id="folderDlg" role="dialog" aria-modal="true" aria-labelledby="fdTitle">
+  <div class="mbox fdbox">
+    <h2 id="fdTitle">새 폴더 만들기</h2>
+    <input id="fdName" maxlength="20" placeholder="폴더 이름" aria-label="폴더 이름" autocomplete="off">
+    <div class="err" id="fdErr" role="alert"></div>
+    <div class="row"><button class="btn sm" id="fdCancel" type="button">취소</button><button class="btn sm pink" id="fdOk" type="button">만들기</button></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const $d=q=>document.querySelector(q)||document.createElement('div'); // 없어진 칸을 가리켜도 오류가 나지 않게
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
+
+const S={doc:null,page:1,docId:'',voice:false,mode:store.get('nm-mode',null),
+  bpm:80,beats:4,metOn:false,sound:true};
+
+/* ---------- 마스코트 ---------- */
+const MASCOT=`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+ <rect class="mk" x="2" y="2" width="60" height="60" rx="18" fill="#0a0a0a"/>
+ <path class="nt" d="M24 44V21l19-4v22" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+ <circle class="nh" cx="19" cy="44" r="6" fill="#fff"/><circle class="nh" cx="38" cy="40" r="6" fill="#fff"/>
+</svg>`;
+$$('.mascot').forEach(m=>m.innerHTML=MASCOT);
+function mascot(state,ms=600){
+  const els=$$('.mascot');
+  els.forEach(e=>e.classList.add(state));
+  if(state!=='listening') setTimeout(()=>els.forEach(e=>e.classList.remove(state)),ms);
+}
+function syncPill(){try{const p=$('#listenPill');if(!p)return;const rec=typeof R!=='undefined'&&R.on;p.style.display=(S.voice||rec)?'inline-flex':'none';$('#pillTxt').textContent=rec?'녹음 중':'듣는 중'}catch(e){}}
+function toast(msg,ms=2600){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),ms);
+}
+let bubbleT;
+function bubble(txt){
+  const b=$('#bubble'); b.textContent=txt; b.style.display='block';
+  clearTimeout(bubbleT); bubbleT=setTimeout(()=>b.style.display='none',2200);
+}
+
+/* ---------- 악보 열기 ---------- */
+function loadImg(f){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=URL.createObjectURL(f)})}
+const fp=f=>f.name+':'+f.size+':'+f.lastModified; // 파일 이름만으로는 겹쳐서 크기·수정시각까지 함께 구분
+const baseName=n=>n.replace(/\.[^.]+$/,'');
+async function openFiles(fileList){
+  const files=[...fileList]; if(!files.length)return;
+  const pdfs=files.filter(f=>/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)), pdf=pdfs[0];
+  const imgs=files.filter(f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif|bmp|heic|heif)$/i.test(f.name))
+                  .sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  let used=null;
+  try{
+    if(pdf){
+      if(!window.pdfjsLib){toast('PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요');return}
+      toast('악보 가져오는 중…');
+      const pd=await pdfjsLib.getDocument({data:await pdf.arrayBuffer()}).promise;
+      S.doc={type:'pdf',pdf:pd,n:pd.numPages}; S.docId='pdf:'+fp(pdf)+':'+pd.numPages; S.docName=baseName(pdf.name); used=[pdf];
+    }else if(imgs.length){
+      toast('악보 가져오는 중…');
+      const els=await Promise.all(imgs.map(loadImg));
+      S.doc={type:'img',imgs:els,n:els.length}; S.docId='img:'+imgs.map(fp).join(',')+':'+els.length;
+      S.docName=baseName(imgs[0].name)+(imgs.length>1?' 외 '+(imgs.length-1)+'장':''); used=imgs;
+    }else{toast('PDF나 이미지(JPG·PNG) 파일을 올려 주세요');return}
+    S.page=1; await libOnOpen(used); afterOpen();
+    if(pdfs.length>1)toast('PDF는 한 번에 하나만 열려요. 첫 번째 파일을 열었어요',3800);
+    else if(pdf&&imgs.length)toast('PDF와 이미지를 함께 올리면 PDF만 열려요',3800);
+  }catch(e){
+    console.error(e);
+    toast(imgs.some(f=>/hei[cf]/i.test(f.type+f.name))?'HEIC 사진은 열 수 없어요. JPG나 PNG로 바꿔서 올려 주세요':'악보를 열지 못했어요',3800);
+  }
+}
+function openDemo(){S.doc={type:'demo',n:3};S.docId='demo';S.docName='데모';S.libId=null;S.page=1;afterOpen()}
+function afterOpen(){
+  S.view='pdf'; S.prev=null; S.kOff=0; S.inst=0; S.capo=0; S.edit=false; $('#tgEdit').checked=false; $('#libModal').style.display='none';
+  S.lastPart=null; const fk=S.fileKey[keyId()]; S.kIdx=fk?fk.idx:0; S.kMinor=fk?fk.minor:false;
+  applyView(); render(); updateKeyUI(); mascot('turn');
+  if(!S.mode) setTimeout(openModal,300);
+}
+
+/* ---------- 데모 악보 그리기 ---------- */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const DEMO_PROG=['C','G','Am','F','C','F','G','C'];
+function demoChordList(page){
+  const top=page===1?100:50, sysH=170, mw=515/4, out=[];
+  for(let sy=0;sy<4;sy++)for(let m=0;m<4;m++){
+    const t=DEMO_PROG[(sy*4+m+(page-1)*3)%8], base=top+sy*sysH+40-16, x=40+m*mw+14;
+    out.push({t,pre:'',post:'',x0:x/595,x1:(x+t.length*8.4+1)/595,y0:(base-12)/842,y1:(base+3)/842,fs:14/842,yb:base/842,ln:sy*10});
+  }
+  return out;
+}
+function drawDemo(ctx,w,h,page){
+  const s=w/595; ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#4a3f4d'; ctx.strokeStyle='#4a3f4d';
+  if(page===1){ctx.textAlign='center';ctx.font=`${28*s}px 'Gowun Dodum', sans-serif`;ctx.fillText('넘겨요 연습곡',w/2,62*s)}
+  ctx.textAlign='left';
+  const R=rng(page*77), top=page===1?100:50, sysH=170, mw=515/4;
+  for(let sy=0;sy<4;sy++){
+    const y0=(top+sy*sysH+40)*s;
+    ctx.lineWidth=1*s;
+    for(let l=0;l<5;l++){ctx.beginPath();ctx.moveTo(40*s,y0+l*10*s);ctx.lineTo(555*s,y0+l*10*s);ctx.stroke()}
+    for(let m=0;m<=4;m++){const x=(40+m*mw)*s;ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y0+40*s);ctx.stroke()}
+    ctx.font=`${10*s}px sans-serif`; ctx.fillText(String((page-1)*16+sy*4+1),40*s,y0-6*s);
+    for(let m=0;m<4;m++){ctx.font=`700 ${14*s}px sans-serif`;ctx.fillText(DEMO_PROG[(sy*4+m+(page-1)*3)%8],(40+m*mw+14)*s,y0-16*s)}
+    for(let m=0;m<4;m++)for(let k=0;k<4;k++){
+      const x=(40+m*mw+18+k*(mw-26)/4)*s, pos=Math.floor(R()*9), ny=y0+40*s-pos*5*s;
+      ctx.beginPath();ctx.ellipse(x,ny,6*s,4.5*s,-0.3,0,7);ctx.fill();
+      ctx.lineWidth=1.4*s;ctx.beginPath();
+      if(pos<4){ctx.moveTo(x+5.5*s,ny);ctx.lineTo(x+5.5*s,ny-30*s)}else{ctx.moveTo(x-5.5*s,ny);ctx.lineTo(x-5.5*s,ny+30*s)}
+      ctx.stroke();
+    }
+  }
+  ctx.font=`${12*s}px sans-serif`; ctx.textAlign='center'; ctx.fillText(`- ${page} -`,w/2,820*s);
+}
+
+/* ---------- 여러 악보 이어보기: 전체 쪽 번호 → (어느 악보의 몇 쪽) ---------- */
+function curPart(p=S.page){
+  const d=S.doc;
+  if(d.type==='set'){const it=d.seq[p-1]||d.seq[d.seq.length-1],q=d.parts[it.pi];return q.kind==='pdf'?{kind:'pdf',pdf:q.pdf,lp:it.lp,id:q.id,name:q.name,idx:it.pi,n:q.n}:{kind:'img',im:q.imgs[it.lp-1],lp:it.lp,id:q.id,name:q.name,idx:it.pi,n:q.n}}
+  if(d.type==='pdf')return{kind:'pdf',pdf:d.pdf,lp:p,id:S.docId};
+  if(d.type==='img')return{kind:'img',im:d.imgs[p-1],lp:p,id:S.docId};
+  return{kind:'demo',lp:p,id:S.docId};
+}
+const ckey=(p=S.page)=>{if(S.doc&&S.doc.type==='set'){const P=curPart(p);return P.id+'#'+P.lp}return S.docId+'#'+p}; // 곡 순서를 바꿔도 코드 인식 결과가 유지되도록
+const keyId=()=>S.doc&&S.doc.type!=='chord'?curPart().id:S.docId; // 원래 키는 악보마다 따로 기억해요
+
+/* ---------- 렌더 ---------- */
+let rtok=0, rtask=null;
+async function render(){
+  if(!S.doc||S.doc.type==='chord')return;
+  const tok=++rtok, stage=$('#stage');
+  const maxW=stage.clientWidth-30, maxH=stage.clientHeight-30;
+  const dpr=Math.min(window.devicePixelRatio||1,2), cv=$('#cv');
+  let cw,ch; const P=curPart();
+  if(S.doc.type==='set'&&S.lastPart!==P.id){ // 다른 악보로 넘어가면 그 악보의 원래 키로 바꿔요
+    S.lastPart=P.id; const fk=S.fileKey[P.id]; S.kIdx=fk?fk.idx:0; S.kMinor=fk?fk.minor:false; if(S.tab==='key')updateKeyUI();
+  }
+  if(P.kind==='pdf'){
+    const pg=await P.pdf.getPage(P.lp), v0=pg.getViewport({scale:1});
+    const sc=Math.min(maxW/v0.width,maxH/v0.height), vp=pg.getViewport({scale:sc*dpr});
+    if(tok!==rtok)return;
+    if(rtask){try{rtask.cancel()}catch(e){}}
+    cv.width=vp.width; cv.height=vp.height; cw=vp.width/dpr; ch=vp.height/dpr;
+    cv.style.width=cw+'px'; cv.style.height=ch+'px';
+    rtask=pg.render({canvasContext:cv.getContext('2d'),viewport:vp});
+    try{await rtask.promise}catch(e){return}
+  }else if(P.kind==='img'){
+    const im=P.im, sc=Math.min(maxW/im.naturalWidth,maxH/im.naturalHeight);
+    cw=im.naturalWidth*sc; ch=im.naturalHeight*sc;
+    cv.width=Math.round(cw*dpr); cv.height=Math.round(ch*dpr); cv.style.width=cw+'px'; cv.style.height=ch+'px';
+    const c2=cv.getContext('2d'); c2.fillStyle='#fff'; c2.fillRect(0,0,cv.width,cv.height); c2.drawImage(im,0,0,cv.width,cv.height);
+  }else{
+    const sc=Math.min(maxW/595,maxH/842); cw=595*sc; ch=842*sc;
+    cv.width=cw*dpr; cv.height=ch*dpr; cv.style.width=cw+'px'; cv.style.height=ch+'px';
+    drawDemo(cv.getContext('2d'),cv.width,cv.height,S.page);
+  }
+  if(tok!==rtok)return;
+  const p=$('#paper'); p.style.width=cw+'px'; p.style.height=ch+'px';
+  updatePager();
+  // 원본 그림을 따로 보관해 두고, 키 바꾸기 탭이면 코드를 찾아 바꿔 그림
+  S.base=document.createElement('canvas'); S.base.width=cv.width; S.base.height=cv.height; S.base.getContext('2d').drawImage(cv,0,0);
+  if(S.tab==='key')await keyOverlay(tok); else buildEditLayer();
+}
+function updatePager(){
+  $('#pgNow').textContent=S.page;$('#pgAll').textContent=S.doc?S.doc.n:1;libSavePage();
+  if(S.doc&&S.doc.type==='set'){document.querySelectorAll('#setList li').forEach(li=>{const on=+li.dataset.i===S.page-1;li.classList.toggle('on',on);const g=li.querySelector('.pg');on?g.setAttribute('aria-current','true'):g.removeAttribute('aria-current');if(on)li.scrollIntoView({block:'nearest',inline:'nearest'})})}
+  const pp=$('#pgPart'); if(S.doc&&S.doc.type==='set'){const P=curPart();pp.textContent=P.name+' · '+P.lp+'/'+P.n+'쪽';pp.style.display=''}else pp.style.display='none';
+}
+let rzT; window.addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(render,150)});
+
+/* ---------- 넘기기 ---------- */
+function go(n){
+  if(S.view==='chord'){ // 코드 악보는 한 장짜리 → 화면 높이만큼 스크롤
+    const v=$('#chordView');
+    if(n===1)v.scrollTo({top:0,behavior:'smooth'}); else v.scrollBy({top:(n>1?1:-1)*v.clientHeight*0.8,behavior:'smooth'});
+    mascot('turn'); return;
+  }
+  if(!S.doc){toast('먼저 악보를 열어 주세요 ');return}
+  const t=Math.max(1,Math.min(S.doc.n,n));
+  if(t===S.page){bubble(n>S.page?'마지막 장이에요!':'첫 장이에요!');return}
+  const before=S.doc.type==='set'?curPart().id:null; S.page=t; mascot('turn'); render();
+  if(S.doc.type==='set'){const P=curPart();if(P.id!==before)toast(P.name+' · '+P.lp+'/'+P.n+'쪽',2200)}
+}
+$('#nextBtn').onclick=()=>go(S.page+1);
+$('#prevBtn').onclick=()=>go(S.page-1);
+$('#firstBtn').onclick=()=>go(1);
+$('#tapR').onclick=()=>go(S.page+1);
+$('#tapL').onclick=()=>go(S.page-1);
+window.addEventListener('keydown',e=>{
+  if($('#folderDlg').style.display==='flex'){if(e.key==='Escape')closeFolderDlg();return}
+  if($('#libModal').style.display==='flex'){if(e.key==='Escape'){if(S.libSelMode)toggleSelMode();else if(S.libView!=null){S.libView=null;renderLib()}else closeLib()}return}
+  if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
+  if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(S.page+1)}
+  else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(S.page-1)}
+  else if(e.key==='Home'){go(1)}
+});
+
+/* ---------- 파일 열기 / 드래그 ---------- */
+['#openBtn','#openBtn2','#scoreUpload','#keyUpload'].forEach(s=>$(s).onclick=()=>$('#file').click());
+if(/[?&]demo=1/.test(location.search))setTimeout(openDemo,0);
+$('#file').onchange=e=>{openFiles(e.target.files);e.target.value=''};
+const stage=$('#stage'), uploadArea=$('#scoreUpload'), landing=$('#landing'), dropBox=$('#drop');
+let dragDepth=0;
+const hasFiles=e=>e.dataTransfer&&[...(e.dataTransfer.types||[])].includes('Files');
+function setDrag(on){if(libOpen()){$('#libModal .libbox').classList.toggle('filedrag',on);uploadArea.classList.remove('dragging');dropBox.style.display='none';return}$('#libModal .libbox').classList.remove('filedrag');const home=landing.style.display!=='none';uploadArea.classList.toggle('dragging',on&&home);dropBox.style.display=(on&&!home)?'flex':'none'}
+// 화면 어디에 놓아도 악보로 열려요 (놓은 곳을 못 잡으면 브라우저가 파일을 열어 앱이 사라지기 때문)
+window.addEventListener('dragenter',e=>{if(!hasFiles(e))return;e.preventDefault();dragDepth++;setDrag(true)});
+window.addEventListener('dragover',e=>{if(!hasFiles(e))return;e.preventDefault();e.dataTransfer.dropEffect='copy'});
+window.addEventListener('dragleave',e=>{if(!hasFiles(e))return;dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)setDrag(false)});
+window.addEventListener('drop',e=>{if(!hasFiles(e))return;e.preventDefault();dragDepth=0;setDrag(false);if(libOpen())libAddFiles(e.dataTransfer.files,S.libView||'');else openFiles(e.dataTransfer.files)});
+$('.brand').onclick=()=>{
+  if(R.on)stopRec();
+  S.view='pdf'; S.doc=null; S.docId=''; S.prev=null; S.tab=S.tab||'turn';
+  applyView();
+};
+
+/* ---------- 음성 ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null,lastCmd=0,warnedHeadset=false;
+function handleSpeech(t,final){
+  const s=t.replace(/\s+/g,'');
+  if(s.includes('녹음')){ // "녹음" → 시작, "녹음 끝/정지" → 종료
+    if(/끝|정지|그만|멈춰|중지/.test(s)){if(R.on){stopRec();return true}return false}
+    if(!R.on){startRec();return true}
+    return false;
+  }
+  const now=Date.now(); if(now-lastCmd<1200)return false;
+  if(/처음|첫장|첫페이지/.test(s)){lastCmd=now;go(1);return true} // "처음으로 돌아가"가 '돌아가'보다 먼저 잡혀야 해요
+  if(/뒤로|이전|전페이지|돌아가/.test(s)){lastCmd=now;go(S.page-1);return true}
+  if(/넘겨|넘어가|다음|넘김/.test(s)){lastCmd=now;go(S.page+1);return true}
+  return false;
+}
+function startVoice(){
+  if(!SR){toast('이 브라우저는 음성 인식을 지원하지 않아요. Chrome을 써 주세요');return false}
+  rec=new SR(); rec.lang='ko-KR'; rec.continuous=true; rec.interimResults=true;
+  let handledIdx=-1; // 이미 처리한 문장은 다시 처리하지 않음 (인식을 끊지 않고 계속 듣기)
+  rec.onstart=()=>{handledIdx=-1};
+  rec.onresult=e=>{
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(i<=handledIdx)continue;
+      const r=e.results[i], t=r[0].transcript;
+      bubble(t);
+      const res=handleSpeech(t,r.isFinal);
+      if(res){handledIdx=i}
+      if(res==='keep')return;
+    }
+  };
+  rec.onerror=e=>{
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+      S.voice=false; syncVoice();
+      toast('마이크 권한이 필요해요. 파일로 열었다면 localhost나 https 주소로 열어 보세요',4500);
+    }
+  };
+  rec.onend=()=>{if(S.voice)setTimeout(()=>{try{rec.start()}catch(_){}},250)};
+  try{rec.start()}catch(_){}
+  return true;
+}
+function stopVoice(){S.voice=false;if(rec){try{rec.abort()}catch(_){}}}
+function syncVoice(){
+  $('#tgVoice').checked=S.voice;
+  $('#voiceHint').textContent=S.voice?'듣는 중이에요 "넘겨!"라고 해 보세요':'끄는 중이에요';
+  $$('.mascot').forEach(m=>m.classList.toggle('listening',S.voice)); syncPill();
+  $d('#dockVoice').classList.toggle('on',S.voice); $d('#dockVoiceTxt').textContent=S.voice?'듣는 중':'음성 켜기';
+}
+$d('#dockVoice').onclick=()=>{const t=$('#tgVoice'); t.checked=!S.voice; t.dispatchEvent(new Event('change'))};
+$('#tgVoice').onchange=e=>{
+  if(e.target.checked){
+    S.voice=true; if(!startVoice())S.voice=false;
+    if(S.voice&&S.metOn&&S.sound&&!warnedHeadset){warnedHeadset=true;toast('메트로놈 소리가 마이크에 들어갈 수 있어요. 이어폰을 추천해요 ',4000)}
+  }else stopVoice();
+  syncVoice();
+};
+
+/* ---------- 연주 유형 선택 ---------- */
+function applyMode(){}
+function openModal(){$('#modal').style.display='flex'}
+$$('.choice').forEach(b=>b.onclick=()=>{
+  S.mode=b.dataset.mode; store.set('nm-mode',S.mode); $('#modal').style.display='none'; applyMode();
+  if(S.mode==='free')toast('음성 스위치를 켜 보세요! "넘겨!" 하면 넘어가요 ');
+  if(S.mode==='mouth'){if(S.voice){stopVoice();syncVoice()}toast('화면 탭이나 키보드로 넘겨요. 윙크 넘기기는 곧 만나요 ',3800)}
+});
+
+/* ---------- 메트로놈 ---------- */
+let ac=null,nextT=0,bi=0,mTimer=null;
+function buildDots(){
+  $('#dots').innerHTML=Array.from({length:S.beats},()=>'<div class="dot"></div>').join('');
+  $d('#dockDots').innerHTML=Array.from({length:S.beats},()=>'<div class="dot"></div>').join('');
+  $('#beatChips').innerHTML=[2,3,4,6].map(n=>`<button class="chip ${n===S.beats?'on':''}" data-n="${n}">${n}박</button>`).join('');
+  $$('#beatChips .chip').forEach(c=>c.onclick=()=>{S.beats=+c.dataset.n;bi=0;buildDots()});
+}
+function setBpm(v){S.bpm=Math.max(30,Math.min(240,Math.round(v)));$('#bpmVal').textContent=S.bpm;$('#bpmRange').value=S.bpm;$d('#dockBpm').textContent=S.bpm}
+$d('#dBpmMinus').onclick=()=>setBpm(S.bpm-1);
+$d('#dBpmPlus').onclick=()=>setBpm(S.bpm+1);
+$d('#dockMet').onclick=()=>S.metOn?metStop():metStart();
+$('#bpmMinus').onclick=()=>setBpm(S.bpm-1);
+$('#bpmPlus').onclick=()=>setBpm(S.bpm+1);
+$('#bpmRange').oninput=e=>setBpm(+e.target.value);
+function click(time,accent){
+  if(!S.sound)return;
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.frequency.value=accent?1500:1000; o.type='triangle';
+  g.gain.setValueAtTime(0.0001,time); g.gain.exponentialRampToValueAtTime(accent?0.7:0.4,time+0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001,time+0.06);
+  o.connect(g).connect(ac.destination); o.start(time); o.stop(time+0.08);
+}
+function flash(idx){
+  ['#dots','#dockDots'].forEach(q=>$$(q+' .dot').forEach((d,i)=>{d.className='dot'+(i===idx?' on'+(idx===0?' acc':''):'')}));
+  const st=$('#stage'); st.classList.add('beat'); st.classList.toggle('accent',idx===0);
+  setTimeout(()=>st.classList.remove('beat','accent'),90);
+}
+function sched(){
+  while(nextT<ac.currentTime+0.12){
+    const idx=bi, delay=Math.max(0,(nextT-ac.currentTime)*1000);
+    click(nextT,idx===0); setTimeout(()=>{if(S.metOn)flash(idx)},delay);
+    nextT+=60/S.bpm; bi=(bi+1)%S.beats;
+  }
+}
+function metStart(){
+  try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){toast('소리를 낼 수 없어요');return}
+  S.metOn=true; bi=0; nextT=ac.currentTime+0.06; mTimer=setInterval(sched,25);
+  $('#metBtn').textContent='■ 멈춤'; $d('#dockMet').textContent='■ 멈춤';
+  if(S.voice&&S.sound&&!warnedHeadset){warnedHeadset=true;toast('음성 모드에서는 이어폰을 추천해요 (소리 버튼으로 끌 수도 있어요)',4000)}
+}
+function metStop(){S.metOn=false;clearInterval(mTimer);$('#metBtn').textContent='▶ 시작'; $d('#dockMet').textContent='▶ 시작';$$('#dots .dot, #dockDots .dot').forEach(d=>d.className='dot')}
+$('#metBtn').onclick=()=>S.metOn?metStop():metStart();
+$('#soundBtn').onclick=()=>{S.sound=!S.sound;$('#soundBtn').textContent=S.sound?'소리':'화면만'};
+let taps=[];
+$('#tapTempo').onclick=()=>{
+  const n=performance.now(); if(taps.length&&n-taps[taps.length-1]>2000)taps=[];
+  taps.push(n); taps=taps.slice(-6);
+  if(taps.length>=2){const iv=(taps[taps.length-1]-taps[0])/(taps.length-1);setBpm(60000/iv)}
+};
+buildDots();
+
+/* ---------- 녹음 ---------- */
+const R={on:false,rec:null,stream:null,chunks:[],t0:0,timer:null,raf:0,ac:null,takes:[],n:0,page:1};
+const fmtT=sec=>Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');
+function syncRecUI(){
+  $('#recBtn').classList.toggle('on',R.on); $('#recLabel').textContent=R.on?'녹음 끝내기':'녹음 시작';
+  $d('#dockRec').classList.toggle('on',R.on); $d('#dockRecLabel').textContent=R.on?'정지':'녹음'; if(!R.on)$d('#dockRecTime').textContent='';
+  $$('.mascot').forEach(m=>m.classList.toggle('listening',S.voice||R.on)); syncPill();
+}
+function meter(an){
+  const buf=new Uint8Array(an.fftSize);
+  (function loop(){
+    if(!R.on){$('#recLevel').style.width='0%';return}
+    an.getByteTimeDomainData(buf); let sum=0; for(const v of buf){const x=(v-128)/128;sum+=x*x}
+    $('#recLevel').style.width=Math.min(100,Math.sqrt(sum/buf.length)*320)+'%'; R.raf=requestAnimationFrame(loop);
+  })();
+}
+async function startRec(){
+  if(R.on)return;
+  if(!navigator.mediaDevices||!window.MediaRecorder){toast('이 브라우저는 녹음을 지원하지 않아요. Chrome을 써 주세요');return}
+  try{R.stream=await navigator.mediaDevices.getUserMedia({audio:true})}
+  catch(e){toast('마이크 권한이 필요해요. 파일로 열었다면 localhost나 https 주소로 열어 보세요',4500);return}
+  const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(m=>MediaRecorder.isTypeSupported(m))||'';
+  R.rec=new MediaRecorder(R.stream,mime?{mimeType:mime}:undefined); R.chunks=[]; R.page=S.doc?S.page:0;
+  R.rec.ondataavailable=e=>{if(e.data&&e.data.size)R.chunks.push(e.data)};
+  R.rec.onstop=()=>{
+    const type=R.rec.mimeType||'audio/webm', blob=new Blob(R.chunks,{type});
+    addTake(blob,(Date.now()-R.t0)/1000,type); R.stream.getTracks().forEach(t=>t.stop());
+    try{R.ac&&R.ac.close()}catch(_){}
+  };
+  try{
+    R.ac=new (window.AudioContext||window.webkitAudioContext)(); const an=R.ac.createAnalyser(); an.fftSize=512;
+    R.ac.createMediaStreamSource(R.stream).connect(an); R.on=true; meter(an);
+  }catch(_){R.on=true}
+  R.rec.start(); R.t0=Date.now(); $('#recTime').textContent='0:00';
+  R.timer=setInterval(()=>{const f=fmtT((Date.now()-R.t0)/1000);$('#recTime').textContent=f;$d('#dockRecTime').textContent=f},250);
+  syncRecUI(); mascot('turn'); toast('녹음을 시작했어요');
+}
+function stopRec(){
+  if(!R.on)return; R.on=false; clearInterval(R.timer); cancelAnimationFrame(R.raf);
+  try{R.rec.stop()}catch(_){} syncRecUI(); toast('녹음을 저장했어요');
+}
+$('#recBtn').onclick=()=>R.on?stopRec():startRec();
+$d('#dockRec').onclick=()=>R.on?stopRec():startRec();
+function addTake(blob,dur,type){
+  const ext=/mp4/.test(type)?'m4a':'webm';
+  R.takes.unshift({id:Date.now(),url:URL.createObjectURL(blob),blob,dur,name:'녹음 '+(++R.n),page:R.page,ext}); renderTakes();
+}
+function renderTakes(){
+  const ul=$('#takeList'); ul.innerHTML='';
+  if(!R.takes.length){ul.innerHTML='<li class="empty" style="background:none">아직 녹음이 없어요</li>';return}
+  R.takes.forEach(t=>{
+    const li=document.createElement('li');
+    li.innerHTML='<div class="hd"><b></b><span class="tag"></span></div><audio controls></audio><div class="bt"><button class="btn sm" data-a="cut">자르기</button><button class="btn sm" data-a="dl">저장</button><button class="btn sm" data-a="del">삭제</button></div>';
+    li.querySelector('b').textContent=t.name;
+    li.querySelector('.tag').textContent=(t.page?t.page+'쪽 · ':'')+fmtT(t.dur);
+    li.querySelector('audio').src=t.url;
+    li.querySelector('[data-a=cut]').onclick=()=>openTrim(t);
+    li.querySelector('[data-a=dl]').onclick=()=>{const a=document.createElement('a');a.href=t.url;a.download=t.name+'.'+t.ext;a.click()};
+    li.querySelector('[data-a=del]').onclick=()=>{URL.revokeObjectURL(t.url);R.takes=R.takes.filter(x=>x!==t);renderTakes()};
+    ul.appendChild(li);
+  });
+}
+
+
+/* ---------- 녹음 자르기 ---------- */
+const TR={t:null,buf:null,peaks:null,s:0,e:1,drag:null,src:null,ac:null};
+function fmtMs(x){x=Math.max(0,x);const m=Math.floor(x/60),sec=(x-m*60);return m+':'+(sec<10?'0':'')+sec.toFixed(1)}
+async function openTrim(t){
+  TR.t=t; TR.buf=null; $('#trimTitle').textContent=t.name+' 자르기'; $('#trimMsg').textContent='소리를 불러오는 중…'; $('#trimDlg').style.display='flex'; trimStop();
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; TR.ac=TR.ac||new AC();
+    TR.buf=await TR.ac.decodeAudioData(await t.blob.arrayBuffer());
+    const ch=TR.buf.getChannelData(0), N=900, step=Math.max(1,Math.floor(ch.length/N)); TR.peaks=new Float32Array(N);
+    for(let i=0;i<N;i++){let m=0;for(let j=i*step;j<Math.min(ch.length,(i+1)*step);j++){const v=Math.abs(ch[j]);if(v>m)m=v}TR.peaks[i]=m}
+    TR.s=0; TR.e=1; $('#trimMsg').textContent=''; drawTrim();
+  }catch(e){console.error(e);$('#trimMsg').textContent='이 녹음은 자를 수 없어요. 다시 녹음해 보세요'}
+}
+function drawTrim(){
+  const cv=$('#trimCv'), x=cv.getContext('2d'), W=cv.width, H=cv.height; x.clearRect(0,0,W,H); if(!TR.buf)return;
+  const a=TR.s*W, b=TR.e*W; x.fillStyle='rgba(60,120,255,.14)'; x.fillRect(a,0,b-a,H);
+  TR.peaks.forEach((p,i)=>{const px=i/TR.peaks.length*W, h=Math.max(2,p*H*.9); x.fillStyle=(px>=a&&px<=b)?'#111':'#b9b9b4'; x.fillRect(px,(H-h)/2,Math.max(1,W/TR.peaks.length-.5),h)});
+  [a,b].forEach(px=>{x.fillStyle='#2f6bff';x.fillRect(px-2,0,4,H);x.beginPath();x.arc(px,H/2,11,0,7);x.fill();x.fillStyle='#fff';x.fillRect(px-1,H/2-5,2,10)});
+  const d=TR.buf.duration; $('#trimS').textContent=fmtMs(TR.s*d); $('#trimE').textContent=fmtMs(TR.e*d); $('#trimL').textContent=fmtMs((TR.e-TR.s)*d);
+}
+(function(){
+  const cv=$('#trimCv'), pos=ev=>{const r=cv.getBoundingClientRect();return Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width))};
+  cv.addEventListener('pointerdown',ev=>{if(!TR.buf)return;const p=pos(ev);TR.drag=Math.abs(p-TR.s)<=Math.abs(p-TR.e)?'s':'e';cv.setPointerCapture(ev.pointerId);trimMove(p)});
+  cv.addEventListener('pointermove',ev=>{if(TR.drag)trimMove(pos(ev))});
+  const up=()=>{TR.drag=null}; cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
+})();
+function trimMove(p){const g=Math.min(.02,.2/(TR.buf?TR.buf.duration:1)); if(TR.drag==='s')TR.s=Math.min(p,TR.e-g); else TR.e=Math.max(p,TR.s+g); TR.s=Math.max(0,TR.s); TR.e=Math.min(1,TR.e); trimStop(); drawTrim()}
+function trimStop(){if(TR.src){try{TR.src.stop()}catch(_){}TR.src=null}$('#trimPlay').textContent='▶ 선택 구간 듣기'}
+$('#trimPlay').onclick=()=>{
+  if(!TR.buf)return; if(TR.src){trimStop();return}
+  if(TR.ac.state==='suspended')TR.ac.resume();
+  const src=TR.ac.createBufferSource(); src.buffer=TR.buf; src.connect(TR.ac.destination); const d=TR.buf.duration; src.start(0,TR.s*d,(TR.e-TR.s)*d); TR.src=src; $('#trimPlay').textContent='■ 멈춤';
+  src.onended=()=>{if(TR.src===src){TR.src=null;$('#trimPlay').textContent='▶ 선택 구간 듣기'}};
+};
+function bufToWav(parts,rate,nch){ // parts: [[Float32Array per channel]...] 이어 붙여 16비트 WAV로
+  const len=parts.reduce((n,p)=>n+p[0].length,0), ab=new ArrayBuffer(44+len*nch*2), v=new DataView(ab);
+  const w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+len*nch*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,nch,true);v.setUint32(24,rate,true);v.setUint32(28,rate*nch*2,true);v.setUint16(32,nch*2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,len*nch*2,true);
+  let o=44; for(const p of parts)for(let i=0;i<p[0].length;i++)for(let c=0;c<nch;c++){const x=Math.max(-1,Math.min(1,p[c][i]));v.setInt16(o,x<0?x*0x8000:x*0x7fff,true);o+=2}
+  return new Blob([ab],{type:'audio/wav'});
+}
+function trimApply(keep){
+  if(!TR.buf)return; trimStop();
+  const b=TR.buf, n=b.length, nch=b.numberOfChannels, a=Math.round(TR.s*n), z=Math.round(TR.e*n), ch=[...Array(nch)].map((_,c)=>b.getChannelData(c));
+  const seg=(f,t)=>ch.map(c=>c.subarray(f,t)), parts=keep?[seg(a,z)]:[seg(0,a),seg(z,n)].filter(p=>p[0].length);
+  if(!parts.length||parts.every(p=>!p[0].length)){$('#trimMsg').textContent='남는 소리가 없어요. 구간을 다시 골라 주세요';return}
+  const blob=bufToWav(parts,b.sampleRate,nch), dur=parts.reduce((s,p)=>s+p[0].length,0)/b.sampleRate;
+  R.takes.unshift({id:Date.now(),url:URL.createObjectURL(blob),blob,dur,name:TR.t.name+' (잘라냄)',page:TR.t.page,ext:'wav'});
+  renderTakes(); $('#trimDlg').style.display='none'; toast('잘라서 새 녹음으로 저장했어요. 원본은 그대로 있어요');
+}
+$('#trimKeep').onclick=()=>trimApply(true); $('#trimDel').onclick=()=>trimApply(false);
+$('#trimClose').onclick=()=>{trimStop();$('#trimDlg').style.display='none'};
+$('#trimDlg').addEventListener('click',e=>{if(e.target.id==='trimDlg'){trimStop();e.currentTarget.style.display='none'}});
+$('#trimDlg').addEventListener('keydown',e=>{if(e.key==='Escape'){trimStop();$('#trimDlg').style.display='none';e.stopPropagation()}});
+
+window.addEventListener('unhandledrejection',e=>{const m=String((e.reason&&e.reason.message)||e.reason);if(/SecurityError|Failed to construct 'Worker'|cannot be accessed from origin/i.test(m)){e.preventDefault();console.warn(m);try{toast('이 미리보기 화면에서는 일부 기능(사진·스캔 악보 인식)이 막혀 있어요. HTML 파일을 브라우저에서 직접 열어 주세요',4000)}catch(_){}}});
+/* ---------- 코드 악보 / 키 바꾸기 ---------- */
+S.view='pdf'; S.tab='turn'; S.prev=null; S.keyCache={}; S.fileKey={}; S.base=null; S.chordText=store.get('nm-chord',''); S.kIdx=0; S.kMinor=false; S.kOff=0; S.inst=0; S.capo=0;
+const NS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'], NF=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const CH=/^([A-G])([#b]?)((?:maj|min|dim|aug|sus|add|m|M|\+|-|°|ø|\d|\(|\)|#|b)*)(?:\/([A-G])([#b]?))?$/;
+const SAMPLE=`# 넘겨요 연습곡 (Key: C)
+[Verse]
+C             G
+눈 뜨면 아침 햇살이
+Am            F
+창가에 살며시 앉아요
+C             G
+오늘도 천천히 걸어요
+F        G        C
+한 장 두 장 넘겨요
+
+[Chorus]
+F          G
+라라라 함께 불러요
+Am         Em
+라라라 손은 바쁘지만
+[F]마음은 [G]가볍게 [C]넘어가요`;
+const noteIdx=(l,a)=>{let i=NS.indexOf(l);if(a==='#')i++;else if(a==='b')i--;return(i+12)%12};
+function transChord(tok,sh,fl){
+  const m=tok.match(CH); if(!m)return tok; const names=fl?NF:NS;
+  const root=names[((noteIdx(m[1],m[2])+sh)%12+12)%12];
+  const bass=m[4]?'/'+names[((noteIdx(m[4],m[5])+sh)%12+12)%12]:'';
+  return root+m[3]+bass;
+}
+function isChordLine(line){
+  const t=line.trim().split(/\s+/); if(!t[0])return false;
+  return t.every(x=>CH.test(x)||/^[|\-–~.x%]+$/.test(x))&&t.some(x=>CH.test(x));
+}
+function adjust(line,sh,fl){ // 코드 길이가 바뀌어도 가사 위치가 어긋나지 않게 공백 보정
+  return line.replace(/(\S+)(\s*)/g,(m0,t,sp)=>{
+    const n=CH.test(t)?transChord(t,sh,fl):t, d=n.length-t.length;
+    return n+(sp.length?' '.repeat(Math.max(1,sp.length-d)):'');
+  });
+}
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const shiftNow=()=>S.kOff+S.inst-S.capo;
+function flatsFor(sh){const t=((S.kIdx+sh)%12+12)%12, maj=S.kMinor?(t+3)%12:t;return[1,3,5,8,10,6].includes(maj)}
+const kname=(i,fl)=>(fl?NF:NS)[((i%12)+12)%12];
+function detectKey(){
+  const lines=S.chordText.split('\n');
+  for(const line of lines){
+    let tok=null;
+    if(isChordLine(line))tok=line.trim().split(/\s+/).find(x=>CH.test(x));
+    else{const m=line.match(/\[([^\]]+)\]/);if(m&&CH.test(m[1].trim()))tok=m[1].trim()}
+    if(tok){const m=tok.match(CH);S.kIdx=noteIdx(m[1],m[2]);S.kMinor=/^(m(?!aj)|min)/.test(m[3]);return}
+  }
+}
+function renderChord(){
+  const sh=shiftNow(), fl=flatsFor(sh);
+  $('#chordView').innerHTML=S.chordText.split('\n').map(line=>{
+    if(!line.trim())return '<div class="lyr">&nbsp;</div>';
+    if(/^\s*#/.test(line))return '<div class="ctitle">'+esc(line.replace(/^\s*#\s*/,''))+'</div>';
+    const sec=line.match(/^\s*\[([^\]]+)\]\s*$/);
+    if(sec&&!CH.test(sec[1].trim()))return '<div class="sec">'+esc(sec[1])+'</div>';
+    if(isChordLine(line))return '<div class="cl">'+esc(adjust(line,sh,fl))+'</div>';
+    return '<div class="lyr">'+esc(line).replace(/\[([^\]]+)\]/g,(m0,c)=>CH.test(c.trim())?'<span class="ic">'+transChord(c.trim(),sh,fl)+'</span>':m0)+'</div>';
+  }).join('');
+}
+function updateKeyUI(){
+  const q=S.kMinor?'m':'';
+  $('#kOrig').textContent=kname(S.kIdx,flatsFor(0))+q;
+  $('#kNow').textContent=kname(S.kIdx+S.kOff,flatsFor(S.kOff))+q;
+  $('#kOff').textContent=S.kOff?(S.kOff>0?'+':'')+S.kOff+'반음':'±0';
+  const sel=$('#kOrigSel'); if(!sel.options.length){
+    ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'].forEach(n=>{
+      const i=NS.indexOf(n)>=0?NS.indexOf(n):NF.indexOf(n);
+      [['','M'],['m','m']].forEach(([s,k])=>sel.add(new Option(n+s,i+k)));
+    });
+  }
+  sel.value=S.kIdx+(S.kMinor?'m':'M'); $('#capoSel').value=S.capo; $('#instSel').value=S.inst;
+  // 카포 추천: 소리 나는 키 기준으로 쉬운 모양(C·G·D·A·E / Am·Em·Dm)
+  const T=((S.kIdx+S.kOff)%12+12)%12, ok=S.kMinor?{9:'Am',4:'Em',2:'Dm'}:{0:'C',7:'G',2:'D',9:'A',4:'E'};
+  const tips=[]; for(let c=0;c<=7;c++){const sp=(T-c+12)%12; if(ok[sp])tips.push((c?`카포 ${c}`:'카포 없이')+' → '+ok[sp]+' 모양')}
+  let html='쉬운 모양 추천: '+(tips.length?tips.slice(0,4).join(' · '):'쉬운 오픈 코드 모양이 없어요 (바레 코드 필요)');
+  if(S.inst||S.capo)html+='<br>지금 화면은 <b>'+kname(S.kIdx+shiftNow(),flatsFor(shiftNow()))+q+'</b> 기준 코드예요';
+  $('#keyTip').innerHTML=html;
+  // 키 선택 스크롤: 원래 키 기준 -6 ~ +6 반음
+  const strip=$('#keyStrip'); strip.innerHTML='';
+  for(let o=-6;o<=6;o++){
+    const b=document.createElement('button');
+    b.className='kchip'+(o===S.kOff?' on':'')+(o===0?' orig':'');
+    b.innerHTML='<small>'+(o===0?'원래':(o>0?'+'+o:o))+'</small><b>'+kname(S.kIdx+o,flatsFor(o))+q+'</b>';
+    b.onclick=()=>{S.kOff=o;refreshChord()};
+    strip.appendChild(b);
+  }
+  const act=strip.querySelector('.on');
+  if(act)strip.scrollTo({left:act.offsetLeft-strip.clientWidth/2+act.clientWidth/2});
+}
+/* --- 이미지·PDF 속 코드 찾기 --- */
+const cleanTok=t=>t.replace(/\u266d/g,'b').replace(/\u266f/g,'#').replace(/^[\[\(|{]+|[\]\)|},.:;]+$/g,'').replace(/^([ACDEFG])\1$/i,(x,a)=>a.toUpperCase());
+function splitChords(c){ // 'FGC' → F, G, C (코드가 붙어서 읽힌 경우)
+  const n=c.length, best=Array(n+1).fill(null); best[0]=[];
+  for(let i=1;i<=n;i++)for(let j=0;j<i;j++){
+    if(best[j]&&CH.test(c.slice(j,i))){const a=best[j].concat([c.slice(j,i)]);if(!best[i]||a.length<best[i].length)best[i]=a}
+  }
+  return best[n]&&best[n].length>=2?best[n]:null;
+}
+function mergeAccidentals(toks){ // 'C' 옆에 따로 떨어진 '♯m' 같은 조각을 한 코드로 합쳐요 (악보 프로그램 PDF에서 흔해요)
+  const out=[];
+  for(const t of toks){
+    const p=out[out.length-1], fh=t.fh||(t.y1-t.y0)/0.72||10;
+    if(p&&/^[\u266f\u266d#]/.test(t.s)&&/(^|\/)[A-G]$/.test(p.s)&&t.x0-p.x1<fh*0.9&&t.x0>=p.x0){out[out.length-1]={...p,s:p.s+t.s,x1:t.x1,y0:Math.min(p.y0,t.y0),y1:Math.max(p.y1,t.y1)};continue}
+    out.push(t);
+  }
+  return out;
+}
+function pickChords(rawToks,W,H,ln){
+  rawToks=mergeAccidentals(rawToks);
+  const lineToks=[];
+  rawToks.forEach(t=>{
+    const c=cleanTok(t.s);
+    if(!CH.test(c)&&c.length<=12){const sp=splitChords(c); if(sp){let off=0;const w=t.x1-t.x0;sp.forEach(seg=>{lineToks.push({...t,s:seg,x0:t.x0+off/c.length*w,x1:t.x0+(off+seg.length)/c.length*w});off+=seg.length});return}}
+    lineToks.push(t);
+  });
+  const info=lineToks.map(t=>{const clean=cleanTok(t.s);return{t,clean,br:/^\[.+\]$/.test(t.s),isC:CH.test(clean)}});
+  const words=info.filter(i=>/[A-Za-z0-9\uAC00-\uD7A3]/.test(i.clean)), cnt=words.filter(i=>i.isC).length;
+  const chordLine=words.length>0&&cnt/words.length>=0.7, out=[];
+  info.forEach(i=>{
+    if(!i.isC||!(chordLine||i.br))return;
+    const cf=i.t.conf; if(cf!=null&&(cf<55||(words.length===1&&!i.br&&cf<75)))return;
+    const m=i.t.s.match(/^([\[\(|{]*)(.*?)([\]\)|},.:;]*)$/);
+    out.push({t:i.clean,pre:m?m[1]:'',post:m?m[3]:'',x0:i.t.x0/W,x1:i.t.x1/W,y0:i.t.y0/H,y1:i.t.y1/H,fs:(i.t.fh||(i.t.y1-i.t.y0)/0.72)/H,yb:(i.t.yb||i.t.y1)/H,ln});
+  });
+  return out;
+}
+async function pdfTextChords(page){ // 글자가 들어 있는 PDF → 정확한 위치를 바로 사용
+  const P=curPart(page), pg=await P.pdf.getPage(P.lp), vp=pg.getViewport({scale:1}), tc=await pg.getTextContent();
+  const items=tc.items.filter(it=>it.str&&it.str.trim()); if(items.length<3)return null;
+  const toks=[];
+  for(const it of items){
+    const tx=pdfjsLib.Util.transform(vp.transform,it.transform), fh=Math.hypot(tx[2],tx[3])||10, iw=it.width, L=it.str.length, re=/\S+/g; let m;
+    while((m=re.exec(it.str))){
+      toks.push({s:m[0],x0:tx[4]+m.index/L*iw,x1:tx[4]+(m.index+m[0].length)/L*iw,y0:tx[5]-fh*0.82,y1:tx[5]+fh*0.22,yb:tx[5],fh});
+    }
+  }
+  toks.sort((a,b)=>a.yb-b.yb||a.x0-b.x0);
+  const lines=[]; for(const t of toks){const l=lines[lines.length-1]; if(l&&Math.abs(l.yb-t.yb)<t.fh*0.5)l.toks.push(t); else lines.push({yb:t.yb,toks:[t]})}
+  const out=[]; lines.forEach((l,i)=>{l.toks.sort((a,b)=>a.x0-b.x0);out.push(...pickChords(l.toks,vp.width,vp.height,i))});
+  return out;
+}
+async function ocrChords(canvas){ // 스캔본·이미지 → 글자 인식(OCR)
+  if(!window.Tesseract){const e=new Error('Tesseract 없음');e.net=true;throw e}
+  const res=await Tesseract.recognize(canvas,'eng',{logger:m=>{if(m.status==='recognizing text')setDetect('코드를 읽는 중… '+Math.round(m.progress*100)+'%')}});
+  const d=res.data, lines=d.lines||(d.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[])), out=[];
+  lines.forEach((ln,i)=>{
+    const toks=(ln.words||[]).filter(w=>w.text.trim()).map(w=>({s:w.text.trim(),x0:w.bbox.x0,x1:w.bbox.x1,y0:w.bbox.y0,y1:w.bbox.y1,conf:w.confidence}));
+    out.push(...pickChords(toks,canvas.width,canvas.height,i));
+  });
+  return out;
+}
+function ocrCanvas(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);draw(x,w,h);return c}
+async function detectChords(page){
+  const P=curPart(page);
+  if(P.kind==='demo')return demoChordList(page);
+  if(P.kind==='pdf'){
+    const t=await pdfTextChords(page); if(t!==null)return t;
+    const pg=await P.pdf.getPage(P.lp), v0=pg.getViewport({scale:1}), vp=pg.getViewport({scale:Math.min(2200/v0.width,3)});
+    const c=ocrCanvas(Math.round(vp.width),Math.round(vp.height),()=>{});
+    await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+    return ocrChords(c);
+  }
+  const im=P.im, k=im.naturalWidth<1400?1400/im.naturalWidth:Math.min(1,2400/im.naturalWidth);
+  return ocrChords(ocrCanvas(Math.round(im.naturalWidth*k),Math.round(im.naturalHeight*k),(x,w,h)=>x.drawImage(im,0,0,w,h)));
+}
+function setDetect(t){const e=$('#detectInfo');if(e)e.textContent=t}
+function autoKey(chords){
+  if(S.fileKey[keyId()]||!chords.length)return;
+  const m=chords[0].t.match(CH); if(!m)return;
+  S.kIdx=noteIdx(m[1],m[2]); S.kMinor=/^(m(?!aj)|min)/.test(m[3]); S.fileKey[keyId()]={idx:S.kIdx,minor:S.kMinor};
+  updateKeyUI();
+}
+async function keyOverlay(tok){
+  const key=ckey();
+  if(!S.keyCache[key]){
+    setDetect('코드를 찾는 중이에요… (이미지는 몇 초 걸려요)');
+    try{S.keyCache[key]=await detectChords(S.page)}
+    catch(e){console.error(e);S.keyCache[key]=[];
+      const msg=String((e&&e.message)||e), sand=/SecurityError|Failed to construct 'Worker'|cannot be accessed from origin/i.test(msg), net=!sand&&(e&&e.net||/network|fetch|load|import|worker|traineddata|wasm/i.test(msg));
+      toast(sand?'이 미리보기 화면에서는 사진·스캔 악보 인식이 막혀 있어요. HTML 파일을 브라우저에서 직접 열어 주세요':net?'사진·스캔 악보를 읽는 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요':'이 장에서는 코드를 읽지 못했어요. 글자가 또렷한 악보일수록 잘 읽어요');
+      setDetect(sand?'미리보기 화면에서는 사진·스캔 인식이 막혀 있어요':net?'글자 인식 도구를 불러오지 못했어요 (인터넷 필요)':'이 장에서는 코드를 찾지 못했어요')}
+    if(tok!==rtok)return;
+    autoKey(S.keyCache[key]);
+  }
+  redrawKey();
+}
+function drawOverlay(ctx,W,H,chords,sh,fl){
+  const med=a=>{a=[...a].sort((x,y)=>x-y);return a[Math.floor((a.length-1)/2)]}, L={}, lfs={}, lyb={};
+  chords.forEach(c=>(L[c.ln]=L[c.ln]||[]).push(c));
+  for(const k in L){lfs[k]=med(L[k].map(c=>c.fs));lyb[k]=med(L[k].map(c=>c.yb))} // 같은 줄은 글자 크기·높이를 통일
+  chords.forEach(c=>{
+    if(c.added){ctx.font='700 '+c.fs*H+'px \'Noto Sans KR\', Arial, sans-serif';ctx.fillStyle='#111';ctx.textBaseline='alphabetic';ctx.textAlign='left';ctx.fillText(transChord(c.t,sh,fl),c.x0*W,c.yb*H);return}
+    const x0=c.x0*W,x1=c.x1*W,y0=c.y0*H,y1=c.y1*H,bw=x1-x0,bh=y1-y0,pad=Math.max(2,bh*0.12);
+    const rx=Math.max(0,Math.floor(x0-pad)),ry=Math.max(0,Math.floor(y0-pad)),rw=Math.min(W-rx,Math.ceil(bw+pad*2)),rh=Math.min(H-ry,Math.ceil(bh+pad*2));
+    if(rw<=0||rh<=0)return;
+    const d=ctx.getImageData(rx,ry,rw,rh).data; let bgL=-1,inkL=999,bg=[255,255,255],ink=[10,10,10];
+    for(let p=0;p<d.length;p+=4){const L=d[p]*.299+d[p+1]*.587+d[p+2]*.114;if(L>bgL){bgL=L;bg=[d[p],d[p+1],d[p+2]]}if(L<inkL){inkL=L;ink=[d[p],d[p+1],d[p+2]]}}
+    ctx.fillStyle='rgb('+bg+')'; ctx.fillRect(rx,ry,rw,rh);
+    const nt=c.pre+transChord(c.t,sh,fl)+c.post; let fs=lfs[c.ln]*H; const fam="'Noto Sans KR', Arial, sans-serif";
+    ctx.font='700 '+fs+'px '+fam;
+    const nx=chords.find(o=>o!==c&&o.ln===c.ln&&o.x0>c.x0), avail=nx?nx.x0*W-x0-2:W-x0-4, w=ctx.measureText(nt).width;
+    if(w>avail&&avail>bw*0.6){fs*=avail/w;ctx.font='700 '+fs+'px '+fam}
+    ctx.fillStyle='rgb('+ink+')'; ctx.textBaseline='alphabetic'; ctx.textAlign='left'; ctx.fillText(nt,x0,lyb[c.ln]*H);
+  });
+  ctx.textBaseline='alphabetic';
+}
+function redrawKey(){
+  if(!S.base||!S.doc||S.doc.type==='chord')return;
+  const cv=$('#cv'), ctx=cv.getContext('2d'); ctx.drawImage(S.base,0,0);
+  const chords=S.keyCache[ckey()]||[], sh=shiftNow();
+  setDetect(chords.length?'이 페이지에서 코드 '+chords.length+'개를 찾았어요. 못 찾은 코드는 바뀌지 않아요':'이 페이지에서 코드를 찾지 못했어요. 코드가 글자로 적힌 악보인지 확인해 주세요');
+  if(sh)drawOverlay(ctx,cv.width,cv.height,chords,sh,flatsFor(sh));
+  buildEditLayer();
+}
+function refreshChord(){
+  if(S.doc&&S.doc.type==='chord')renderChord(); else if(S.tab==='key')redrawKey();
+  updateKeyUI();
+}
+$('#kUp').onclick=()=>{S.kOff=Math.min(11,S.kOff+1);refreshChord()};
+$('#kDown').onclick=()=>{S.kOff=Math.max(-11,S.kOff-1);refreshChord()};
+$('#kReset').onclick=()=>{S.kOff=0;S.inst=0;S.capo=0;refreshChord()};
+$('#capoSel').onchange=e=>{S.capo=+e.target.value;refreshChord()};
+$('#instSel').onchange=e=>{S.inst=+e.target.value;refreshChord()};
+$('#kOrigSel').onchange=e=>{const v=e.target.value;S.kMinor=v.endsWith('m');S.kIdx=parseInt(v);if(S.doc&&S.doc.type!=='chord')S.fileKey[keyId()]={idx:S.kIdx,minor:S.kMinor};refreshChord()};
+
+function applyView(){
+  const chord=S.view==='chord', key=S.tab==='key', rec=S.tab==='rec'&&!chord;
+  $('#chordView').style.display=chord?'block':'none';
+  $('#chordBar').style.display=chord?'flex':'none';
+  $('#keyCard').style.display=key?'block':'none';
+  $('#textModeBtn').style.display=(key&&!chord)?'inline-block':'none';
+  $('#tabTurn').classList.toggle('on',!key&&!rec); $('#tabKey').classList.toggle('on',key); $('#tabRec').classList.toggle('on',rec);
+  $('#chordEdit').style.display='none';
+  $('#optEdit').style.display=chord?'none':''; $('#saveKeyPdf').style.display=chord?'none':'';
+  if(!key){S.edit=false;$('#tgEdit').checked=false}
+  const hasDoc=!!S.doc&&S.doc.type!=='chord', home=!chord&&!hasDoc&&!key&&!rec;
+  $('#keyUpload').style.display=(key&&!chord&&!hasDoc)?'flex':'none';
+  $('#landing').style.display=home?'grid':'none'; $('main').style.display=home?'none':'';
+  const isSet=!!S.doc&&S.doc.type==='set'&&!chord&&!rec; $('#setSide').style.display=isSet?'flex':'none'; $('main').classList.toggle('hasSet',isSet); if(isSet)renderSetList();
+  if(home)refreshResume();
+  if(chord){$('#paper').style.display='none';$('#pager').style.display='none'}
+  else{
+    $$('.navbtn').forEach(b=>b.style.display=hasDoc?'':'none'); $('#paper').style.display=hasDoc?'block':'none'; $('#pager').style.display=hasDoc?'flex':'none';
+  }
+  $('#recLib').style.display=rec?'block':'none'; $('#stage').style.display=rec?'none':'';
+}
+function enterChord(){
+  if(S.view==='chord')return;
+  if(S.doc&&S.doc.type!=='chord')S.prev={doc:S.doc,docId:S.docId,page:S.page};
+  S.view='chord'; S.doc={type:'chord',n:1}; S.docId='chord:main'; S.page=1;
+  if(!S.chordText.trim())S.chordText=SAMPLE;
+  detectKey(); S.kOff=0; S.inst=0; S.capo=0;
+  applyView(); refreshChord();
+}
+function exitChord(){
+  if(S.view!=='chord')return;
+  S.view='pdf';
+  if(S.prev){S.doc=S.prev.doc;S.docId=S.prev.docId;S.page=S.prev.page;S.prev=null}else{S.doc=null;S.docId=''}
+  S.kOff=0; S.inst=0; S.capo=0; S.lastPart=null; const fk=S.doc?S.fileKey[keyId()]:null; S.kIdx=fk?fk.idx:0; S.kMinor=fk?fk.minor:false;
+  applyView(); render(); updateKeyUI();
+}
+$('#tabTurn').onclick=()=>{
+  if(S.tab==='turn')return;
+  S.tab='turn'; if(S.view==='chord')exitChord(); else{applyView();render()}
+};
+$('#tabKey').onclick=()=>{
+  if(S.tab==='key')return;
+  S.tab='key'; applyView(); render(); updateKeyUI();
+};
+$('#tabRec').onclick=()=>{if(S.tab==='rec')return;S.tab='rec';applyView();renderTakes()};
+$('#textModeBtn').onclick=enterChord; $('#chordBackBtn').onclick=exitChord;
+$('#chordEditBtn').onclick=()=>{$('#chordText').value=S.chordText;$('#chordEdit').style.display='flex'};
+$('#chordSample').onclick=()=>{$('#chordText').value=SAMPLE};
+$('#chordApply').onclick=()=>{
+  S.chordText=$('#chordText').value; store.set('nm-chord',S.chordText);
+  detectKey(); S.kOff=0; S.inst=0; S.capo=0; $('#chordEdit').style.display='none'; refreshChord(); toast('코드 악보를 적용했어요 ');
+};
+
+/* ---------- 이어보기 순서 목록 (왼쪽) ---------- */
+const railCache=new Map(); let railIO=null;
+async function railThumb(it){ // 악보 한 장의 작은 그림 (한 번 만들면 다시 쓰고, 보이는 것만 만들어요)
+  const q=S.doc.parts[it.pi], key=q.id+'#'+it.lp; if(railCache.has(key))return railCache.get(key);
+  let url;
+  if(q.kind==='pdf'){const pg=await q.pdf.getPage(it.lp),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:300/v0.width}),c=thumbCanvas(Math.round(vp.width),Math.round(vp.height));await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;url=c.toDataURL('image/jpeg',0.8)}
+  else{const im=q.imgs[it.lp-1],k=300/im.naturalWidth,c=thumbCanvas(300,Math.max(1,Math.round(im.naturalHeight*k)));c.getContext('2d').drawImage(im,0,0,c.width,c.height);url=c.toDataURL('image/jpeg',0.8)}
+  railCache.set(key,url); return url;
+}
+function renderSetList(focusSel){
+  const ol=$('#setList'); if(railIO){railIO.disconnect();railIO=null}
+  if(!S.doc||S.doc.type!=='set'){ol.innerHTML='';return}
+  const seq=S.doc.seq; ol.innerHTML='';
+  const load=async(li)=>{const img=li.querySelector('img');if(img.src)return;try{img.src=await railThumb(seq[+li.dataset.i])}catch(e){}};
+  if('IntersectionObserver' in window)railIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){railIO.unobserve(e.target);load(e.target)}}),{root:ol,rootMargin:'300px'});
+  const horiz=()=>getComputedStyle(ol).flexDirection==='row';
+  seq.forEach((it,i)=>{
+    const q=S.doc.parts[it.pi], li=document.createElement('li'); li.draggable=true; li.dataset.i=i; if(i===S.page-1)li.classList.add('on');
+    const pg=document.createElement('button'); pg.type='button'; pg.className='pg'; pg.title=q.name+' · '+it.lp+'/'+q.n+'쪽 (끌어서 순서 바꾸기)';
+    pg.setAttribute('aria-label',(i+1)+'번째 장, '+q.name+' '+it.lp+'쪽. 눌러서 이동'); if(i===S.page-1)pg.setAttribute('aria-current','true');
+    const img=document.createElement('img'); img.alt=''; img.draggable=false; pg.append(img,el('span','num',String(i+1))); pg.onclick=()=>go_(i+1);
+    li.append(pg);
+    li.ondragstart=e=>{e.dataTransfer.setData('text/x-setitem',String(i));e.dataTransfer.effectAllowed='move';li.classList.add('dragging')};
+    li.ondragend=()=>{li.classList.remove('dragging');ol.querySelectorAll('.before,.after').forEach(x=>x.classList.remove('before','after'))};
+    li.ondragover=e=>{if(![...e.dataTransfer.types].includes('text/x-setitem'))return;e.preventDefault();e.dataTransfer.dropEffect='move';
+      const r=li.getBoundingClientRect(), after=horiz()?e.clientX>r.left+r.width/2:e.clientY>r.top+r.height/2; ol.querySelectorAll('.before,.after').forEach(x=>x.classList.remove('before','after')); li.classList.add(after?'after':'before')};
+    li.ondragleave=e=>{if(!li.contains(e.relatedTarget))li.classList.remove('before','after')};
+    li.ondrop=e=>{if(![...e.dataTransfer.types].includes('text/x-setitem'))return;e.preventDefault();e.stopPropagation();
+      const from=Number(e.dataTransfer.getData('text/x-setitem')), after=li.classList.contains('after'); li.classList.remove('before','after');
+      let to=i+(after?1:0); if(from<to)to--; reorderPage(from,to)};
+    ol.appendChild(li); if(railIO)railIO.observe(li); else load(li);
+  });
+  if(focusSel){const li=ol.querySelector('li[data-i="'+focusSel.i+'"]');if(li){const b=li.querySelector('.'+focusSel.k);(b&&!b.disabled?b:li.querySelector('.pg')).focus()}}
+  else{const on=ol.querySelector('li.on');if(on)on.scrollIntoView({block:'nearest',inline:'nearest'})}
+}
+const go_=n=>go(n);
+function reorderPage(from,to,k){
+  const d=S.doc; if(!d||d.type!=='set'||from===to||to<0||to>=d.seq.length)return;
+  const curItem=d.seq[S.page-1], [m]=d.seq.splice(from,1); d.seq.splice(to,0,m);
+  S.page=d.seq.indexOf(curItem)+1;
+  const first=d.parts[d.seq[0].pi]; S.docName=first.name+(d.parts.length>1?' 외 '+(d.parts.length-1)+'곡':'');
+  updatePager(); renderSetList(k?{i:to,k}:null);
+  toast((from+1)+'번째 장을 '+(to+1)+'번째로 옮겼어요',1800);
+}
+
+/* ---------- 읽은 코드 고치기 ---------- */
+S.edit=false;
+const keyOf=()=>ckey();
+function buildEditLayer(){
+  const old=$('#editLayer'); if(old)old.remove();
+  const on=S.edit&&S.tab==='key'&&S.doc&&S.doc.type!=='chord';
+  $('#paper').classList.toggle('editmode',!!on); if(!on)return;
+  const L=document.createElement('div'); L.id='editLayer'; $('#paper').appendChild(L);
+  const chords=S.keyCache[keyOf()]||[];
+  chords.forEach((c,i)=>{
+    const b=document.createElement('button'); b.type='button'; b.className='ebox'+(c.added?' added':'');
+    b.style.left=c.x0*100+'%'; b.style.top=c.y0*100+'%'; b.style.width=(c.x1-c.x0)*100+'%'; b.style.height=(c.y1-c.y0)*100+'%';
+    b.setAttribute('aria-label','코드 '+c.t+' 고치기'); b.title='코드 고치기';
+    if(c.added)b.textContent=c.t;
+    b.onclick=ev=>{ev.stopPropagation();openChordPop(i)};
+    L.appendChild(b);
+  });
+  L.onclick=ev=>{const r=L.getBoundingClientRect();openChordPop(-1,{x:(ev.clientX-r.left)/r.width,y:(ev.clientY-r.top)/r.height})};
+}
+function openChordPop(i,pos){
+  const L=$('#editLayer'); if(!L)return; const old=L.querySelector('.cpop'); if(old)old.remove();
+  const chords=S.keyCache[keyOf()]||(S.keyCache[keyOf()]=[]), c=i>=0?chords[i]:null;
+  const x=c?c.x0:pos.x, y=c?c.y1:pos.y;
+  const pop=document.createElement('div'); pop.className='cpop'; pop.onclick=e=>e.stopPropagation();
+  pop.style.left=Math.min(Math.max(x*100,0),62)+'%'; pop.style.top=Math.min(y*100+1,92)+'%';
+  const inp=document.createElement('input'); inp.value=c?c.t:''; inp.placeholder='예: Am7, G/B'; inp.setAttribute('aria-label','코드');
+  const ok=document.createElement('button'); ok.type='button'; ok.className='btn sm pink'; ok.textContent='확인';
+  const del=document.createElement('button'); del.type='button'; del.className='btn sm'; del.textContent=c?'삭제':'취소';
+  const close=()=>pop.remove();
+  const apply=()=>{
+    const v=inp.value.trim().replace(/\u266d/g,'b').replace(/\u266f/g,'#');
+    if(!CH.test(v)){toast('코드 형식이 아니에요 (예: C, Am7, G/B)');inp.focus();return}
+    if(c){c.t=v}
+    else{
+      const cv=$('#cv'), asp=cv.width/cv.height, near=chords.reduce((b,o)=>(!b||Math.abs(o.yb-pos.y)<Math.abs(b.yb-pos.y))?o:b,null);
+      const same=near&&Math.abs(near.yb-pos.y)<near.fs*1.2;
+      const fs=near?near.fs:0.014, yb=same?near.yb:pos.y, ln=same?near.ln:Math.max(0,...chords.map(o=>o.ln))+1;
+      chords.push({t:v,pre:'',post:'',x0:pos.x,x1:pos.x+v.length*fs/asp*0.62,y0:yb-fs*0.85,y1:yb+fs*0.2,fs,yb,ln,added:true});
+    }
+    redrawKey();
+  };
+  ok.onclick=apply;
+  del.onclick=()=>{if(c){chords.splice(i,1);redrawKey()}else close()};
+  inp.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')apply();else if(e.key==='Escape')close()};
+  pop.append(inp,ok,del); L.appendChild(pop); inp.focus(); inp.select();
+}
+$('#tgEdit').onchange=e=>{S.edit=e.target.checked;buildEditLayer()};
+
+/* ---------- 바뀐 악보 PDF로 저장 ---------- */
+async function pageCanvas(p){
+  const P=curPart(p);
+  if(P.kind==='pdf'){
+    const pg=await P.pdf.getPage(P.lp), v0=pg.getViewport({scale:1}), vp=pg.getViewport({scale:Math.min(1800/v0.width,3)});
+    const c=ocrCanvas(Math.round(vp.width),Math.round(vp.height),()=>{});
+    await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise; return c;
+  }
+  const im=P.im, k=Math.min(1,2400/Math.max(im.naturalWidth,im.naturalHeight));
+  return ocrCanvas(Math.round(im.naturalWidth*k),Math.round(im.naturalHeight*k),(x,w,h)=>x.drawImage(im,0,0,w,h));
+}
+let saving=false;
+async function exportKeyPdf(){
+  if(saving)return;
+  if(!S.doc||S.doc.type==='chord'||S.doc.type==='demo'){toast('먼저 악보 파일(PDF·이미지)을 열어 주세요');return}
+  const sh=shiftNow(); if(!sh){toast('먼저 원하는 키를 골라 주세요. 원래 키 그대로면 저장할 게 없어요');return}
+  if(!window.jspdf){toast('PDF 저장 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요');return}
+  saving=true; const btn=$('#saveKeyPdf'), label=btn.textContent; btn.disabled=true;
+  const docId=S.docId, doc=S.doc, fl=flatsFor(sh), q=S.kMinor?'m':'', keyName=kname(S.kIdx+sh,fl)+q, name=S.docName||'악보';
+  try{
+    let out=null;
+    for(let p=1;p<=doc.n;p++){
+      btn.textContent='저장 준비 중… '+p+'/'+doc.n;
+      const key=ckey(p);
+      if(!S.keyCache[key])S.keyCache[key]=await detectChords(p);
+      const c=await pageCanvas(p);
+      drawOverlay(c.getContext('2d'),c.width,c.height,S.keyCache[key],sh,fl);
+      const w=c.width,h=c.height,o=w>h?'l':'p';
+      if(!out)out=new jspdf.jsPDF({unit:'px',format:[w,h],orientation:o,hotfixes:['px_scaling']}); else out.addPage([w,h],o);
+      out.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',0,0,w,h);
+    }
+    out.save((name+' ('+keyName+' 키).pdf').replace(/[\\/:*?"<>|]/g,'_'));
+    toast('바뀐 악보를 PDF로 저장했어요');
+  }catch(e){console.error(e);toast('PDF로 저장하지 못했어요')}
+  finally{saving=false;btn.disabled=false;btn.textContent=label;if(S.tab==='key')redrawKey()}
+}
+$('#saveKeyPdf').onclick=exportKeyPdf;
+
+/* ---------- 내 악보함 (이 브라우저의 IndexedDB에 저장) ---------- */
+let _db,libWarned=false;
+const libDB=()=>_db||(_db=new Promise((res,rej)=>{const r=indexedDB.open('neomgyeo',1);r.onupgradeneeded=()=>r.result.createObjectStore('scores',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
+const libTx=(mode,fn)=>libDB().then(db=>new Promise((res,rej)=>{const t=db.transaction('scores',mode),q=fn(t.objectStore('scores'));t.oncomplete=()=>res(q&&q.result);t.onerror=t.onabort=()=>rej(t.error)}));
+const libGet=id=>libTx('readonly',st=>st.get(id)), libPut=it=>libTx('readwrite',st=>st.put(it)), libDel=id=>libTx('readwrite',st=>st.delete(id)), libAll=()=>libTx('readonly',st=>st.getAll());
+S.libId=null; S.libView=null;
+async function libOnOpen(files){ // 열 때마다 악보함에 넣고, 이미 있으면 보던 쪽으로 돌아가요
+  S.libId=null;
+  try{
+    let it=await libGet(S.docId);
+    if(it){it.openedAt=Date.now(); if(it.lastPage>1&&it.lastPage<=S.doc.n){S.page=it.lastPage;setTimeout(()=>toast(S.page+'쪽에서 이어서 열었어요'),50)} await libPut(it)}
+    else{await libPut({id:S.docId,name:S.docName,kind:S.doc.type,files,pages:S.doc.n,folder:'',lastPage:1,addedAt:Date.now(),openedAt:Date.now()});const id=S.docId,k=S.doc.type;makeThumb(files,k).then(d=>d&&libSetThumb(id,d)).catch(()=>{});setTimeout(()=>toast('내 악보함에 저장했어요'),50)}
+    S.libId=S.docId;
+  }catch(e){console.warn(e);if(!libWarned){libWarned=true;setTimeout(()=>toast('악보함에 저장하지 못했어요. 악보는 그대로 볼 수 있어요',3800),50)}}
+}
+function libSavePage(){
+  if(!S.libId||!S.doc||S.doc.type==='chord')return;
+  clearTimeout(libSavePage._t); const id=S.libId,pg=S.page;
+  libSavePage._t=setTimeout(async()=>{try{const it=await libGet(id);if(it){it.lastPage=pg;it.openedAt=Date.now();await libPut(it)}}catch(e){}},500);
+}
+const folders=()=>store.get('nm-folders',[]);
+function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+const libOK=it=>Array.isArray(it.files)&&it.files.length&&typeof it.pages==='number';
+function libRescue(it){ // 이전 버전에서 저장한 기록: 파일(Blob)이 남아 있으면 되살려요
+  if(libOK(it))return it.files; const out=[];
+  for(const k in it){const v=it[k];
+    if(v instanceof Blob)out.push(v);
+    else if(Array.isArray(v)&&v.length&&v.every(x=>x instanceof Blob))out.push(...v);
+  }
+  return out.map((b,i)=>b instanceof File?b:new File([b],(it.name||it.title||'악보')+(/pdf/i.test(b.type)?'.pdf':''),{type:b.type,lastModified:it.addedAt||it.openedAt||1}));
+}
+const libDate=it=>{const t=it.openedAt||it.addedAt||it.savedAt||it.createdAt||it.updatedAt||it.date;const d=t?new Date(t):null;return d&&!isNaN(d)?d.toLocaleDateString('ko-KR'):''};
+const FOLDER_SVG='<svg viewBox="0 0 72 58" aria-hidden="true"><path class="fb" d="M4 12a7 7 0 0 1 7-7h17l7 8h26a7 7 0 0 1 7 7v31a7 7 0 0 1-7 7H11a7 7 0 0 1-7-7z"/><path class="ff" d="M4 22a7 7 0 0 1 7-7h50a7 7 0 0 1 7 7v28a7 7 0 0 1-7 7H11a7 7 0 0 1-7-7z"/></svg>';
+S.libSelMode=false; S.libSel=new Set();
+const libOpen=()=>$('#libModal').style.display==='flex';
+const dragKind=e=>{const t=[...(e.dataTransfer&&e.dataTransfer.types||[])];return t.includes('text/x-score')?'score':t.includes('Files')?'files':''};
+// 폴더·"← 내 악보함" 버튼이 받는 곳: 악보 행(내부 끌기)과 파일(밖에서 끌기) 모두 받아요
+function makeDropTarget(node,folder){
+  node.addEventListener('dragenter',e=>{if(dragKind(e))e.preventDefault()});
+  node.addEventListener('dragover',e=>{const k=dragKind(e);if(!k)return;e.preventDefault();e.dataTransfer.dropEffect=k==='score'?'move':'copy';node.classList.add('over')});
+  node.addEventListener('dragleave',e=>{if(!node.contains(e.relatedTarget))node.classList.remove('over')});
+  node.addEventListener('drop',async e=>{
+    const k=dragKind(e); if(!k)return; e.preventDefault(); e.stopPropagation(); node.classList.remove('over'); dragDepth=0; setDrag(false);
+    if(k==='files')return libAddFiles(e.dataTransfer.files,folder);
+    const id=e.dataTransfer.getData('text/x-score'); if(!id)return;
+    try{const it=await libGet(id); if(it&&(it.folder||'')!==folder){it.folder=folder;await libPut(it);toast('"'+(it.name||'악보')+'"을(를) '+(folder?'"'+folder+'" 폴더에':'악보함에')+' 넣었어요')}}catch(err){}
+    renderLib();
+  });
+}
+function folderTile(label,count){
+  const b=document.createElement('button'); b.type='button'; b.className='ftile'; b.dataset.folder=label; b.innerHTML='<span class="ico">'+FOLDER_SVG+'</span>';
+  b.append(el('b',null,label),el('small',null,count+'개')); b.setAttribute('aria-label','폴더 '+label+', 악보 '+count+'개');
+  const key='f:'+label, on=S.libSel.has(key);
+  if(S.libSelMode){b.classList.toggle('sel',on);b.setAttribute('aria-pressed',on);const c=el('span','chk',on?'✓':'');c.setAttribute('aria-hidden','true');b.appendChild(c)}
+  b.onclick=()=>{if(S.libSelMode){S.libSel.has(key)?S.libSel.delete(key):S.libSel.add(key);renderLib()}else{S.libView=label;renderLib()}};
+  makeDropTarget(b,label); return b;
+}
+async function renderLib(){
+  let all=[]; try{all=await libAll()}catch(e){}
+  // 이전 버전 기록 정리: 같은 이름의 새 기록이 있으면 중복이라 지워요
+  const names=new Set(all.filter(libOK).map(x=>x.name)); let items=[];
+  for(const it of all){
+    if(!libOK(it)&&names.has(it.name||it.title)){try{await libDel(it.id)}catch(e){} continue}
+    items.push(it);
+  }
+  items.sort((a,b)=>(b.openedAt||b.addedAt||0)-(a.openedAt||a.addedAt||0));
+  const fl=folders(); if(S.libView!=null&&!fl.includes(S.libView))S.libView=null;
+  const root=S.libView==null, grid=$('#libGrid'), ul=$('#libList'), cur=root?'':S.libView;
+  // 사라진 항목은 선택에서 빼요
+  for(const k of [...S.libSel]){if(k[0]==='f'?!fl.includes(k.slice(2)):!items.some(x=>x.id===k.slice(2)))S.libSel.delete(k)}
+  $('#libBack').style.display=root?'none':''; $('#libTools').style.display=root?'':'none';
+  $('#libTitle').textContent=root?'내 악보함':S.libView;
+  $('#libSelBtn').textContent=S.libSelMode?'선택 취소':'선택';
+  const nSc=selIds(items).length, pbtn=$('#libPlay'); pbtn.style.display=S.libSelMode&&nSc?'':'none'; pbtn.textContent='순서대로 보기 ('+nSc+')';
+  const dbtn=$('#libDelFolder'); dbtn.style.display=S.libSelMode&&S.libSel.size?'':'none'; dbtn.textContent='삭제 ('+S.libSel.size+')';
+  $('#libHint').textContent=S.libSelMode?'폴더나 악보를 누르는 순서대로 이어서 볼 수 있어요(악보에는 번호가 붙어요). "순서대로 보기"를 누르면 그 순서로 이어서 볼 수 있어요. 지우려면 폴더나 악보를 골라 "삭제"를 누르세요 (폴더를 지워도 안의 악보는 남아요).'
+    :root?'악보 파일(PDF·이미지)을 이 창에 끌어다 놓으면 악보함에 담겨요. 폴더 위에 놓으면 그 폴더로 들어가고, 악보를 폴더로 끌어 넣어도 돼요.'
+    :'악보 파일을 이 창에 놓으면 이 폴더에 담겨요. 악보를 끌어서 "← 내 악보함"에 놓으면 폴더 밖으로 나가요.';
+  grid.style.display=root?'':'none'; grid.innerHTML=''; let newTile=null;
+  if(root){
+    const q=$('#libSearch').value.trim().toLowerCase(), cnt=v=>items.filter(x=>(x.folder||'')===v).length;
+    fl.filter(f=>!q||f.toLowerCase().includes(q)).forEach(f=>grid.appendChild(folderTile(f,cnt(f))));
+    if(!S.libSelMode){
+      const nb=document.createElement('button'); nb.type='button'; nb.className='ftile new'; nb.id='libAdd'; nb.setAttribute('aria-label','새 폴더 만들기');
+      nb.innerHTML='<span class="plus" aria-hidden="true"><svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M22 6v32M6 22h32"/></svg></span>';
+      nb.append(el('b',null,'새 폴더')); nb.onclick=openFolderDlg; newTile=nb;
+    }
+    if(q&&!grid.querySelector('.ftile:not(.new)'))grid.appendChild(el('div','empty','"'+$('#libSearch').value.trim()+'" 폴더가 없어요'));
+  }
+  ul.innerHTML=''; ul.style.display='none'; grid.style.display='';
+  const shown=items.filter(x=>(x.folder||'')===cur), tok=++libTok, lazy=[];
+  if(!shown.length&&!root)grid.appendChild(el('div','empty','이 폴더는 비어 있어요'));
+  shown.forEach(it=>{
+    const files=libRescue(it), ok=libOK(it), nm=it.name||it.title||'이름 없는 악보', key='s:'+it.id;
+    const t=document.createElement('div'); t.className='ftile score'; t.tabIndex=0; t.setAttribute('role','button');
+    const th=el('span','thumb'), ico=el('span','ico'); ico.appendChild(th);
+    const img=document.createElement('img'); img.alt=''; img.draggable=false;
+    if(it.thumb){img.src=it.thumb;th.appendChild(img)}else{th.textContent=(it.kind==='pdf'||(files[0]&&/pdf/i.test(files[0].type)))?'PDF':'IMG';if(ok&&files.length)lazy.push({it,files,th,img})}
+    t.append(ico,el('b',null,nm),el('small',null,ok?it.pages+'쪽'+(it.lastPage>1?' · '+it.lastPage+'쪽까지':''):'이전 버전 저장분'));
+    t.setAttribute('aria-label','악보 '+nm+(ok?', '+it.pages+'쪽':''));
+    const openIt=()=>{if(!files.length){toast('이 악보는 파일이 남아 있지 않아 열 수 없어요');return}$('#libModal').style.display='none';openFiles(files)};
+    if(S.libSelMode){
+      const on=S.libSel.has(key), ord=[...S.libSel].filter(k=>k[0]==='s').indexOf(key)+1; t.classList.toggle('sel',on); t.setAttribute('aria-pressed',on); if(on)t.setAttribute('aria-label','악보 '+nm+', '+ord+'번째 선택'); const c=el('span','chk',on?String(ord):''); c.setAttribute('aria-hidden','true'); t.appendChild(c);
+      const tg=()=>{S.libSel.has(key)?S.libSel.delete(key):S.libSel.add(key);renderLib()};
+      t.onclick=tg; t.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg()}};
+      grid.appendChild(t); return;
+    }
+    t.onclick=openIt; t.onkeydown=e=>{if(e.target===t&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openIt()}};
+    t.draggable=true; t.ondragstart=e=>{closeSMenus();e.dataTransfer.setData('text/x-score',it.id);e.dataTransfer.effectAllowed='move';t.classList.add('dragging')}; t.ondragend=()=>t.classList.remove('dragging');
+    const more=el('button','more','⋯'); more.type='button'; more.setAttribute('aria-label',nm+' 메뉴'); more.setAttribute('aria-haspopup','true');
+    more.onclick=e=>{
+      e.stopPropagation(); const had=t.querySelector('.smenu'); closeSMenus(); if(had)return;
+      const m=el('div','smenu'); m.onclick=ev=>ev.stopPropagation(); m.onkeydown=ev=>{if(ev.key==='Escape'){ev.stopPropagation();closeSMenus();more.focus()}};
+      const ren=el('button','btn sm','이름 변경'); ren.type='button';
+      ren.onclick=()=>{
+        closeSMenus(); const b=t.querySelector('b'), inp=document.createElement('input'); inp.className='renin'; inp.value=nm; inp.maxLength=60; inp.setAttribute('aria-label','악보 이름');
+        inp.onclick=ev=>ev.stopPropagation(); b.replaceWith(inp); inp.focus(); inp.select(); let done=false;
+        const save=async()=>{
+          if(done)return; done=true; const v=inp.value.trim();
+          if(v&&v!==nm){it.name=v;try{await libPut(it)}catch(err){toast('이름을 바꾸지 못했어요')}if(S.libId===it.id)S.docName=v;refreshResume()}
+          renderLib();
+        };
+        inp.onkeydown=ev=>{ev.stopPropagation();if(ev.key==='Enter')save();else if(ev.key==='Escape'){done=true;renderLib()}};
+        inp.onblur=save;
+      };
+      const sel=document.createElement('select'); sel.setAttribute('aria-label',nm+' 폴더 옮기기');
+      [['','폴더 옮기기'],['__out','폴더 밖 (악보함)'],...fl.map(f=>[f,f])].forEach(([v,tx])=>sel.add(new Option(tx,v)));
+      sel.value=''; sel.onchange=async()=>{if(!sel.value)return;it.folder=sel.value==='__out'?'':sel.value;try{await libPut(it)}catch(err){}renderLib()};
+      const del=el('button','btn sm','삭제'); del.type='button';
+      del.onclick=async()=>{closeSMenus();if(!confirm('"'+nm+'"을(를) 내 악보함에서 지울까요? 되돌릴 수 없어요.'))return;try{await libDel(it.id)}catch(err){} if(S.libId===it.id)S.libId=null; renderLib();refreshResume()};
+      m.append(ren,sel,del); t.appendChild(m); ren.focus();
+    };
+    t.appendChild(more); grid.appendChild(t);
+  });
+  if(newTile)grid.appendChild(newTile); // 새 폴더 칸은 항상 맨 끝
+  // 썸네일이 아직 없는 악보는 하나씩 만들어 채워요
+  (async()=>{for(const q of lazy){
+    if(tok!==libTok)return;
+    try{const d=await makeThumb(q.files,q.it.kind); if(!d)continue; await libSetThumb(q.it.id,d); if(tok===libTok&&q.th.isConnected){q.img.src=d;q.th.textContent='';q.th.appendChild(q.img)}}catch(e){}
+  }})();
+}
+let libTok=0;
+const closeSMenus=()=>document.querySelectorAll('.smenu').forEach(m=>m.remove());
+document.addEventListener('click',closeSMenus);
+// 첫 장 미리보기 (작은 JPEG으로 악보함에 같이 저장)
+function thumbCanvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);return c}
+async function thumbFromPdf(pd){const pg=await pd.getPage(1),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:220/v0.width}),c=thumbCanvas(Math.round(vp.width),Math.round(vp.height));await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;return c.toDataURL('image/jpeg',0.78)}
+function thumbFromImg(im){const k=220/im.naturalWidth,c=thumbCanvas(220,Math.max(1,Math.round(im.naturalHeight*k)));c.getContext('2d').drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',0.78)}
+async function makeThumb(files,kind){
+  if(kind==='pdf'||/pdf/i.test(files[0].type)){if(!window.pdfjsLib)return null;return thumbFromPdf(await pdfjsLib.getDocument({data:await files[0].arrayBuffer()}).promise)}
+  return thumbFromImg(await loadImg(files[0]));
+}
+async function libSetThumb(id,d){const it=await libGet(id);if(it){it.thumb=d;await libPut(it)}} // 읽고 고쳐서 다시 저장(쪽 번호 등 다른 값을 덮어쓰지 않게)
+// 파일을 끌어다 놓으면 열지 않고 악보함(또는 그 폴더)에 담아요
+async function libAddFiles(fileList,folder){
+  const files=[...fileList], pdfs=files.filter(f=>/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)),
+    imgs=files.filter(f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name)).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  if(!pdfs.length&&!imgs.length){toast('PDF나 이미지(JPG·PNG) 파일을 올려 주세요');return}
+  if(pdfs.length&&!window.pdfjsLib){toast('PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요');return}
+  let added=0,dup=0,fail=0;
+  const add=async(id,name,kind,fs,pages)=>{if(await libGet(id)){dup++;return}await libPut({id,name,kind,files:fs,pages,folder:folder||'',lastPage:1,addedAt:Date.now(),openedAt:0});added++};
+  toast('악보함에 담는 중…');
+  for(const f of pdfs){try{const pd=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;const id='pdf:'+fp(f)+':'+pd.numPages;await add(id,baseName(f.name),'pdf',[f],pd.numPages);thumbFromPdf(pd).then(d=>libSetThumb(id,d)).catch(()=>{})}catch(e){console.warn(e);fail++}}
+  if(imgs.length){try{await add('img:'+imgs.map(fp).join(',')+':'+imgs.length,baseName(imgs[0].name)+(imgs.length>1?' 외 '+(imgs.length-1)+'장':''),'img',imgs,imgs.length)}catch(e){console.warn(e);fail++}}
+  toast((added?added+'개를 '+(folder?'"'+folder+'" 폴더에':'악보함에')+' 담았어요':'새로 담은 악보가 없어요')+(dup?' (이미 있는 '+dup+'개는 건너뛰었어요)':'')+(fail?' · '+fail+'개는 읽지 못했어요':''),3800);
+  if(libOpen())renderLib(); refreshResume();
+}
+function selIds(items){ // 고른 순서대로 악보 id 목록 (폴더를 고르면 그 안의 악보를 화면에 보이는 순서대로 펼쳐요)
+  const ids=[], seen=new Set(), add=id=>{if(!seen.has(id)){seen.add(id);ids.push(id)}};
+  for(const k of S.libSel){ if(k[0]==='s')add(k.slice(2)); else if(k[0]==='f'){const f=k.slice(2); items.filter(x=>x.folder===f).forEach(x=>add(x.id))} }
+  return ids;
+}
+async function openSet(){ // 고른 순서대로 한 권처럼 이어서 보기
+  let all=[]; try{all=(await libAll()).filter(libOK).sort((a,b)=>(b.openedAt||b.addedAt||0)-(a.openedAt||a.addedAt||0))}catch(e){}
+  const ids=selIds(all); if(!ids.length){toast('이 선택에는 악보가 없어요');return}
+  const parts=[]; let skipped=0, single=null; toast('악보 불러오는 중…');
+  try{
+    for(const id of ids){
+      const it=await libGet(id), files=it?libRescue(it):[]; if(!files.length){skipped++;continue}
+      const nm=it.name||it.title||'악보', isPdf=it.kind==='pdf'||/pdf/i.test(files[0].type);
+      if(isPdf){if(!window.pdfjsLib)throw new Error('pdfjs');const pd=await pdfjsLib.getDocument({data:await files[0].arrayBuffer()}).promise;parts.push({id:it.id,name:nm,kind:'pdf',pdf:pd,n:pd.numPages,files})}
+      else{const els=await Promise.all(files.map(loadImg));parts.push({id:it.id,name:nm,kind:'img',imgs:els,n:els.length,files})}
+    }
+  }catch(e){console.error(e);toast('악보를 불러오지 못했어요. 인터넷 연결을 확인해 주세요');return}
+  if(!parts.length){toast('열 수 있는 악보가 없어요');return}
+  S.libSelMode=false; S.libSel.clear(); $('#libModal').style.display='none';
+  if(parts.length===1){openFiles(parts[0].files);return}
+  const seq=[]; parts.forEach((q,pi)=>{for(let lp=1;lp<=q.n;lp++)seq.push({pi,lp})});
+  S.doc={type:'set',parts,seq,n:seq.length}; railCache.clear(); S.docId='set:'+parts.map(p=>p.id).join('|'); S.docName=parts[0].name+' 외 '+(parts.length-1)+'곡'; S.libId=null; S.page=1;
+  afterOpen(); toast(parts.length+'개 악보를 순서대로 열었어요'+(skipped?' ('+skipped+'개는 파일이 없어 뺐어요)':''),3200);
+}
+function toggleSelMode(){S.libSelMode=!S.libSelMode;S.libSel.clear();renderLib()}
+async function delSelected(){
+  const fs=[...S.libSel].filter(k=>k[0]==='f').map(k=>k.slice(2)), ss=[...S.libSel].filter(k=>k[0]==='s').map(k=>k.slice(2));
+  if(!fs.length&&!ss.length)return;
+  const what=[fs.length?'폴더 '+fs.length+'개':'',ss.length?'악보 '+ss.length+'개':''].filter(Boolean).join('와 ');
+  if(!confirm(what+'를 지울까요?'+(fs.length?'\n폴더 안의 악보는 지워지지 않고 악보함으로 나와요.':'')+(ss.length?'\n지운 악보는 되돌릴 수 없어요.':'')))return;
+  try{for(const it of await libAll()){if(ss.includes(it.id)){await libDel(it.id);if(S.libId===it.id)S.libId=null}else if(fs.includes(it.folder)){it.folder='';await libPut(it)}}}catch(e){toast('일부를 지우지 못했어요')}
+  store.set('nm-folders',folders().filter(x=>!fs.includes(x)));
+  S.libSel.clear(); S.libSelMode=false; renderLib(); refreshResume(); toast(what+'를 지웠어요');
+}
+function openLib(){S.libView=null;S.libSelMode=false;S.libSel.clear();$('#libSearch').value='';$('#libModal').style.display='flex';renderLib();$('#libClose').focus()}
+function closeLib(){$('#libModal').style.display='none';refreshResume()}
+function openFolderDlg(){$('#fdName').value='';$('#fdErr').textContent='';$('#folderDlg').style.display='flex';$('#fdName').focus()}
+function closeFolderDlg(){$('#folderDlg').style.display='none';const a=$('#libAdd');if(a)a.focus()}
+function addFolder(){
+  const n=$('#fdName').value.trim(), fl=folders();
+  if(!n){$('#fdErr').textContent='폴더 이름을 적어 주세요';$('#fdName').focus();return}
+  if(fl.includes(n)||n==='전체'||n==='미분류'){$('#fdErr').textContent='이미 있는 폴더 이름이에요';$('#fdName').focus();return}
+  store.set('nm-folders',[...fl,n]); S.libView=null; $('#libSearch').value=''; closeFolderDlg(); renderLib(); toast('"'+n+'" 폴더를 만들었어요');
+}
+function refreshResume(){}
+['#libBtn','#libBtn2'].forEach(q=>$(q).onclick=openLib);
+$('#libClose').onclick=closeLib; $('#libBack').onclick=()=>{S.libView=null;renderLib()}; $('#libDelFolder').onclick=delSelected; $('#libSelBtn').onclick=toggleSelMode; $('#libPlay').onclick=openSet; makeDropTarget($('#libBack'),'');
+$('#libSearch').oninput=renderLib; $('#libSearch').onkeydown=e=>{if(e.key==='Escape'&&$('#libSearch').value){$('#libSearch').value='';renderLib();e.stopPropagation()}};
+$('#fdOk').onclick=addFolder; $('#fdCancel').onclick=closeFolderDlg;
+$('#fdName').onkeydown=e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();addFolder()}else if(e.key==='Escape'){e.preventDefault();closeFolderDlg()}}; // preventDefault: 닫힌 뒤 포커스가 옮겨간 버튼이 Enter로 다시 눌리는 것을 막아요
+$('#folderDlg').addEventListener('click',e=>{if(e.target.id==='folderDlg')closeFolderDlg()});
+$('#libModal').addEventListener('click',e=>{if(e.target.id==='libModal')closeLib()});
+
+/* ---------- 시작 ---------- */
+applyMode(); syncVoice(); renderTakes(); applyView(); refreshResume();
+
+</script>
+</body>
+</html>
