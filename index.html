@@ -209,6 +209,26 @@ select.hchip.on{background-color:var(--ink);color:#fff}
 .hweb .wmain{flex:1;min-width:220px;border:0;background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0}
 .hweb b{display:block;font-size:16px}.hweb small{display:block;font-size:12.5px;color:var(--soft);margin-top:3px;line-height:1.6}
 .hempty{text-align:center;color:var(--soft);padding:26px 0 6px;font-size:14.5px}
+.pdhead{margin-top:22px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pdhead b{font-size:16px}.pdhead span{font-size:12.5px;color:var(--soft)}
+.pdgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
+.pdcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:8px;text-align:left;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:7px;transition:transform .1s,border-color .15s}
+.pdcard:hover{border-color:var(--ink)}.pdcard:active{transform:scale(.98)}
+.pdth{aspect-ratio:3/4;background:#f6f6f3;border-radius:10px;overflow:hidden;display:flex;align-items:flex-start;justify-content:center}
+.pdth img{width:100%;height:100%;object-fit:contain;object-position:top;background:#fff}
+.pdcard b{font-size:13px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.pdcard small{font-size:11.5px;color:var(--soft)}
+.pdmore{display:block;margin:14px auto 0}
+.pdmsg{margin-top:14px;background:#fff;border-radius:18px;padding:14px 18px;font-size:13.5px;color:#555;line-height:1.7}
+.pdmsg .hchips{margin-top:10px}
+#pdDlg{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:56;padding:16px}
+.pdbox{max-width:560px!important;max-height:94vh;display:flex;flex-direction:column}
+.pdbox h2{font-size:20px!important;line-height:1.35;word-break:break-word}
+.pdbox .svInfo{font-size:12.5px;color:#777;margin:2px 0 10px}.pdbox .svInfo a{color:inherit}
+.pdview{flex:1;min-height:200px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff;text-align:center}
+.pdview img{max-width:100%;display:block;margin:0 auto}
+.pdbox .row{flex-wrap:wrap}
+.pdbox button:disabled{opacity:.55;cursor:default}
 @media (max-width:700px){.hq h2{font-size:28px;margin-bottom:20px}.hbox input[type=text]{font-size:18px}.hscope{display:none}}
 
 .lleft.welcome{padding:0;max-width:none;position:relative}
@@ -460,10 +480,11 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
     </div>
     <div class="hchips" id="hqChips"></div>
     <div class="hchips" id="hqFilters" hidden></div>
-    <div id="hqWeb"></div>
     <div id="hqAI"></div>
     <div id="hqCount"></div>
     <div class="hres" id="hqRes"></div>
+    <div id="hqPD"></div>
+    <div id="hqWeb"></div>
     <div class="hnote" id="hqNote"></div>
     <input type="file" id="fileAdd" accept="application/pdf,image/*" multiple hidden>
   </div>
@@ -640,6 +661,15 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
     </div>
     <div class="err" id="svErr" role="alert"></div>
     <div class="row"><button class="btn sm" id="svCancel" type="button">닫기</button></div>
+  </div>
+</div>
+<div id="pdDlg" role="dialog" aria-modal="true" aria-labelledby="pdTitle">
+  <div class="mbox fdbox pdbox">
+    <h2 id="pdTitle"></h2>
+    <div class="svInfo" id="pdMeta"></div>
+    <div class="pdview"><img id="pdImg" alt="악보 미리보기"></div>
+    <div class="err" id="pdErr" role="alert"></div>
+    <div class="row"><button class="btn sm" id="pdClose" type="button">닫기</button><button class="btn sm" id="pdSave" type="button">악보함에 저장</button><button class="btn sm pink" id="pdOpen" type="button">바로 열기</button></div>
   </div>
 </div>
 <div id="toast"></div>
@@ -827,6 +857,7 @@ $('#firstBtn').onclick=()=>go(1);
 $('#tapR').onclick=()=>go(S.page+1);
 $('#tapL').onclick=()=>go(S.page-1);
 window.addEventListener('keydown',e=>{
+  if($('#pdDlg').style.display==='flex'){if(e.key==='Escape')pdClose();return}
   if($('#saveDlg').style.display==='flex'){if(e.key==='Escape')closeSaveDlg();return}
   if($('#folderDlg').style.display==='flex'){if(e.key==='Escape')closeFolderDlg();return}
   if($('#libModal').style.display==='flex'){if(e.key==='Escape'){if(S.libSelMode)toggleSelMode();else if(S.libView!=null){S.libView=null;renderLib()}else closeLib()}return}
@@ -1974,14 +2005,13 @@ async function hRender(){
   const hasText=!!H.q.trim(); $('#hqClear').classList.toggle('show',hasText); $('#hqGo').classList.toggle('on',hasText);
   const sp=typed||H.searching;
   $('#hqChips').hidden=sp; $('#hqFilters').hidden=!sp;
-  if(!sp){hChips();$('#hqRes').innerHTML='';$('#hqCount').innerHTML='';$('#hqWeb').innerHTML='';hAIcard([]);hNote();return}
-  hFilters(); hWebCard();
+  if(!sp){hChips();$('#hqRes').innerHTML='';$('#hqCount').innerHTML='';$('#hqWeb').innerHTML='';PD.seq++;PD.want='';PD.inflight='';PD.state='idle';PD.term='';clearTimeout(PD.t);$('#hqPD').innerHTML='';hAIcard([]);hNote();return}
+  hFilters(); hWebCard(); pdSchedule();
   const r=await hSearch(); if(seq!==hSeq)return;
   const cnt=$('#hqCount'); cnt.className='hcount';
   cnt.innerHTML=''; if(r.list.length){cnt.append(el('div',null,'내 악보함에서 '+r.list.length+'곡을 찾았어요'),el('span',null,r.list.some(x=>x.sem)?'뜻이 가까운 순서':'')); cnt.firstChild.style.fontWeight='700'; cnt.style.display='flex'}else cnt.style.display='none';
   const res=$('#hqRes'); res.innerHTML='';
-  if(!all.length)res.appendChild(el('div','hempty','아직 악보함이 비어 있어요. + 버튼으로 악보를 추가해 보세요.'));
-  else if(!r.list.length)res.appendChild(el('div','hempty',hasText?'찾는 곡이 없어요.':'조건에 맞는 악보가 없어요.'));
+  if(!hasText){ if(!all.length)res.appendChild(el('div','hempty','아직 악보함이 비어 있어요. + 버튼으로 악보를 추가해 보세요.')); else if(!r.list.length)res.appendChild(el('div','hempty','조건에 맞는 악보가 없어요.')) }
   r.list.forEach(x=>res.appendChild(hItem(x)));
   hAIcard(r.unmatched); hNote(r);
 }
@@ -2007,7 +2037,7 @@ function hTagEdit(it,box,btn){
 }
 function hChips(){
   const box=$('#hqChips'); if(box.dataset.done)return; box.dataset.done='1';
-  ['쉬운 곡','잔잔한 곡','봄 느낌','기타연주곡','코드 4개 이하'].forEach(t=>{const b=el('button','hchip',t); b.type='button'; b.onclick=()=>{$('#hqIn').value=t;H.q=t;H.searching=true;hRender()}; box.appendChild(b)});
+  ['Amazing Grace','엘리제를 위하여','쉬운 곡','잔잔한 곡','코드 4개 이하'].forEach(t=>{const b=el('button','hchip',t); b.type='button'; b.onclick=()=>{$('#hqIn').value=t;H.q=t;H.searching=true;hRender()}; box.appendChild(b)});
 }
 function hFilters(){
   const box=$('#hqFilters'); box.innerHTML='';
@@ -2035,8 +2065,8 @@ function hNote(r){
   const n=$('#hqNote'); n.innerHTML=''; const idx=n.dataset.idx; const sp=$('#landing').classList.contains('searching');
   if(idx)n.appendChild(el('div',null,idx));
   if(!sp){
-    n.appendChild(el('div',null,'곡 이름을 쓰고 Enter를 누르면 네이버에서 악보 이미지를 찾아 줘요'));
-    n.appendChild(el('div',null,'찾은 이미지는 복사해서 Ctrl+V로 붙여넣거나, 이 화면에 끌어다 놓거나 + 를 눌러 추가할 수 있어요'));
+    n.appendChild(el('div',null,'곡 이름을 쓰면 내 악보함과 저작권이 풀린 공개 악보에서 함께 찾아요 (영어·원어 제목, 유명한 곡은 한글도 돼요)'));
+    n.appendChild(el('div',null,'다른 악보는 네이버에서 이미지를 복사해 Ctrl+V로 붙여넣거나, 이 화면에 끌어다 놓거나 + 를 눌러 추가할 수 있어요'));
     n.appendChild(el('div',null,'검색은 내 기기 안에서만 이뤄져요 · 악보와 가사는 밖으로 나가지 않아요'));
     if(!AI.on&&!AI.loading){const d=el('div'),b=el('button',null,'말로 찾기 켜기 (분위기·뜻으로 찾기)'); b.type='button'; b.onclick=aiEnable; d.appendChild(b); n.appendChild(d)}
   }
@@ -2048,7 +2078,7 @@ function hWeb(q){ // 네이버 이미지 검색을 새 탭으로 열어요 (악�
 }
 function hWebCard(){
   const box=$('#hqWeb'); box.innerHTML=''; const q=H.q.trim(); if(!q||!$('#landing').classList.contains('searching'))return;
-  const c=el('div','hweb'), m=el('button','wmain'); m.type='button'; m.append(el('b',null,'네이버에서 "'+q+'" 악보 이미지 찾기 ↗'),el('small',null,'이미지를 우클릭 → "이미지 복사" → 이 화면에서 Ctrl+V (휴대폰은 오른쪽 "붙여넣기")')); m.onclick=()=>hWeb(q);
+  const c=el('div','hweb'), m=el('button','wmain'); m.type='button'; m.append(el('b',null,'더 찾아보기 · 네이버에서 "'+q+'" 악보 이미지 ↗'),el('small',null,'저작권이 있는 악보는 이미지를 우클릭 → "이미지 복사" → 이 화면에서 Ctrl+V (휴대폰은 오른쪽 "붙여넣기")')); m.onclick=()=>hWeb(q);
   const pb=el('button','btn sm','붙여넣기'); pb.type='button'; pb.onclick=hPasteBtn; c.append(m,pb); box.appendChild(c);
 }
 async function hAddPasted(fs){
@@ -2069,12 +2099,101 @@ window.addEventListener('paste',e=>{
   const fs=[...((e.clipboardData&&e.clipboardData.files)||[])].filter(f=>/^image\//.test(f.type)||/pdf/i.test(f.type)); if(!fs.length)return;
   e.preventDefault(); if(libOpen())libAddFiles(fs,S.libView||''); else hAddPasted(fs);
 });
+/* ---------- 공개 악보 검색 (위키미디어 커먼즈 · 서버 없이 브라우저에서 바로) ---------- */
+const PD={seq:0,want:'',inflight:'',term:'',res:[],state:'idle',show:12,cache:{},t:0,ko:[],files:{}};
+const PD_KO=[['엘리제를 위하여','Fur Elise'],['엘리제','Fur Elise'],['캐논','Canon Pachelbel'],['카논','Canon Pachelbel'],['파헬벨','Pachelbel'],['아베마리아','Ave Maria'],['아베 마리아','Ave Maria'],['월광','Moonlight Sonata'],['터키행진곡','Turkish March'],['터키 행진곡','Turkish March'],['짐노페디','Gymnopedie'],['환희의 송가','Ode to Joy'],['사계','Four Seasons'],['어메이징 그레이스','Amazing Grace'],['나 같은 죄인 살리신','Amazing Grace'],['고요한 밤','Silent Night'],['기쁘다 구주 오셨네','Joy to the World'],['징글벨','Jingle Bells'],['아리랑','Arirang'],['반짝반짝 작은 별','Twinkle Twinkle Little Star'],['오 거룩한 밤','O Holy Night'],['아름답고 푸른 도나우','Blue Danube'],['푸른 도나우','Blue Danube'],['베토벤','Beethoven'],['모차르트','Mozart'],['바흐','Bach'],['쇼팽','Chopin'],['슈베르트','Schubert'],['슈만','Schumann'],['헨델','Handel'],['하이든','Haydn'],['브람스','Brahms'],['드뷔시','Debussy'],['사티','Satie'],['비발디','Vivaldi'],['리스트','Liszt'],['차이콥스키','Tchaikovsky'],['라흐마니노프','Rachmaninoff'],['멘델스존','Mendelssohn'],['파가니니','Paganini'],['엘가','Elgar'],['그리그','Grieg'],['요한 슈트라우스','Johann Strauss'],['소나타','Sonata'],['협주곡','Concerto'],['교향곡','Symphony'],['왈츠','Waltz'],['녹턴','Nocturne'],['야상곡','Nocturne'],['전주곡','Prelude'],['즉흥곡','Impromptu'],['변주곡','Variations'],['행진곡','March'],['찬송가','Hymn'],['찬송','Hymn'],['성가','Hymn'],['캐럴','Carol'],['크리스마스','Christmas']].sort((a,b)=>b[0].length-a[0].length);
+function pdTerm(q){
+  let s=' '+q+' '; PD_KO.forEach(([k,v])=>{if(s.includes(k))s=s.split(k).join(' '+v+' ')});
+  s=s.replace(/코드\s*\d+\s*개\s*이하|[A-Ga-g][#b♭♯]?\s*키|쉬운|어려운|악보|코드|연주곡|잔잔한|느낌/g,' ');
+  const ko=s.match(/[가-힣ㄱ-ㅎ]+/g)||[]; s=s.replace(/[가-힣ㄱ-ㅎ]+/g,' ');
+  return {term:s.replace(/\s+/g,' ').trim(),ko};
+}
+const PD_MIME=/^(application\/pdf|image\/(png|jpeg|svg\+xml|webp))$/;
+const pdOK=x=>PD_MIME.test(x.mime||'')&&x.url&&x.thumb&&(x.mime!=='application/pdf'||x.pages<=40)&&x.size<=40e6;
+async function pdApi(s){
+  const u='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(s)+'&gsrnamespace=6&gsrlimit=40&prop=imageinfo&iiprop=url|mime|size|extmetadata&iiurlwidth=500&format=json&origin=*';
+  const r=await fetch(u); if(!r.ok)throw new Error('http '+r.status);
+  const j=await r.json();
+  return Object.values((j.query&&j.query.pages)||{}).sort((a,b)=>a.index-b.index).map(p=>{const i=(p.imageinfo&&p.imageinfo[0])||{},m=i.extmetadata||{};
+    return {title:p.title,mime:i.mime,pages:i.pagecount||1,size:i.size||0,url:i.url,thumb:i.thumburl,lic:(m.LicenseShortName&&m.LicenseShortName.value)||'',page:i.descriptionurl||''}});
+}
+async function pdRun(term){
+  const seq=++PD.seq; PD.term=term; PD.inflight=term;
+  if(PD.cache[term]){PD.res=PD.cache[term];PD.state='ok';PD.show=12;pdRender();return}
+  PD.state='load'; pdRender();
+  try{
+    let list=(await pdApi(term+' deepcategory:"Sheet music"')).filter(pdOK);
+    if(list.length<3){const have=new Set(list.map(x=>x.title)); (await pdApi(term+' sheet music')).filter(pdOK).forEach(x=>{if(!have.has(x.title))list.push(x)})}
+    if(seq!==PD.seq)return;
+    PD.cache[term]=list; PD.res=list; PD.state='ok'; PD.show=12; PD.inflight='';
+  }catch(e){console.warn(e); if(seq!==PD.seq)return; PD.state='err'; PD.inflight=''}
+  pdRender();
+}
+function pdSchedule(now){
+  const q=H.q.trim();
+  if(!q){clearTimeout(PD.t);PD.seq++;PD.want='';PD.inflight='';PD.state='idle';PD.term='';pdRender();return}
+  const {term,ko}=pdTerm(q); PD.ko=ko;
+  if(term.length<2){clearTimeout(PD.t);PD.seq++;PD.want='';PD.inflight='';PD.state='hint';PD.term='';pdRender();return}
+  if(term===PD.want&&(PD.state==='ok'||PD.inflight===term||(PD.state==='load'&&!now))){pdRender();return}
+  clearTimeout(PD.t); PD.seq++; PD.want=term; PD.inflight=''; PD.state='load'; pdRender();
+  PD.t=setTimeout(()=>pdRun(term),now?0:550);
+}
+const pdName=t=>t.replace(/^File:/,'').replace(/\.[^.]+$/,'').replace(/^IMSLP\d+-/,'').replace(/\s*\(IA [^)]*\)\s*$/,'').trim();
+const pdLic=l=>/public domain/i.test(l)?'저작권 풀림':(l||'');
+function pdPrev(url){return url.replace(/(\d+)px-([^/]*)$/,(m,n,r)=>'960px-'+r)}
+function pdRender(){
+  const box=$('#hqPD'); box.innerHTML=''; if(PD.state==='idle')return;
+  const head=el('div','pdhead'); head.append(el('b',null,'저작권이 풀린 공개 악보'),el('span',null,'위키미디어 커먼즈')); box.appendChild(head);
+  const msg=t=>{const d=el('div','pdmsg',t); box.appendChild(d); return d};
+  if(PD.state==='hint'){
+    const d=msg('공개 악보는 영어나 원어 제목으로 찾아져요. 한글로는 유명한 곡과 작곡가(베토벤, 엘리제를 위하여 등)만 알아들어요.');
+    const c=el('div','hchips'); ['Amazing Grace','엘리제를 위하여','Canon Pachelbel','Silent Night'].forEach(t=>{const b=el('button','hchip',t); b.type='button'; b.onclick=()=>{$('#hqIn').value=t;H.q=t;H.searching=true;hRender();pdSchedule(true)}; c.appendChild(b)}); d.appendChild(c); return;
+  }
+  if(PD.state==='load'){msg('공개 악보를 찾는 중…'); return}
+  if(PD.state==='err'){const d=msg('공개 악보 서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요. '); const b=el('button','btn sm','다시 시도'); b.type='button'; b.onclick=()=>pdSchedule(true); d.appendChild(b); return}
+  if(!PD.res.length){msg('"'+PD.term+'" 공개 악보를 찾지 못했어요. 영어나 원어 제목으로 써 보세요. (예: Amazing Grace)'); return}
+  const grid=el('div','pdgrid'); PD.res.slice(0,PD.show).forEach(x=>grid.appendChild(pdCard(x))); box.appendChild(grid);
+  if(PD.res.length>PD.show){const b=el('button','btn sm pdmore','더 보기 ('+(PD.res.length-PD.show)+')'); b.type='button'; b.onclick=()=>{PD.show+=12;pdRender()}; box.appendChild(b)}
+}
+function pdCard(x){
+  const c=el('button','pdcard'); c.type='button'; c.setAttribute('aria-label','공개 악보 '+pdName(x.title)+' 보기');
+  const th=el('span','pdth'), im=document.createElement('img'); im.alt=''; im.loading='lazy'; im.src=x.thumb; th.appendChild(im);
+  c.append(th,el('b',null,pdName(x.title)),el('small',null,[x.mime==='application/pdf'?'PDF '+x.pages+'쪽':'이미지',pdLic(x.lic)].filter(Boolean).join(' · ')));
+  c.onclick=()=>pdOpen(x,c); return c;
+}
+let pdCur=null,pdFrom=null,pdBusy=false;
+function pdOpen(x,from){
+  pdCur=x; pdFrom=from; $('#pdTitle').textContent=pdName(x.title);
+  const meta=$('#pdMeta'); meta.textContent=[x.mime==='application/pdf'?'PDF '+x.pages+'쪽':'이미지',pdLic(x.lic)].filter(Boolean).join(' · ')+' · ';
+  if(x.page){const a=document.createElement('a'); a.href=x.page; a.target='_blank'; a.rel='noopener'; a.textContent='출처 보기 ↗'; meta.appendChild(a)}
+  const im=$('#pdImg'); im.onerror=()=>{im.onerror=null;im.src=x.thumb}; im.src=pdPrev(x.thumb);
+  $('#pdErr').textContent=''; $('#pdSave').disabled=$('#pdOpen').disabled=false; $('#pdDlg').style.display='flex'; $('#pdOpen').focus();
+}
+function pdClose(){if(pdBusy)return; $('#pdDlg').style.display='none'; $('#pdImg').removeAttribute('src'); if(pdFrom&&pdFrom.isConnected)pdFrom.focus()}
+async function pdFile(x){
+  if(PD.files[x.title])return PD.files[x.title];
+  const isSvg=x.mime==='image/svg+xml', src=isSvg?pdPrev(pdPrev(x.thumb)).replace(/(\d+)px-/,'1280px-'):x.url;
+  const r=await fetch(src); if(!r.ok)throw new Error('http '+r.status);
+  const bl=await r.blob(), type=x.mime==='application/pdf'?'application/pdf':(isSvg?'image/png':(x.mime||bl.type));
+  const ext=type==='application/pdf'?'pdf':type.split('/')[1].replace('jpeg','jpg');
+  const f=new File([bl],pdName(x.title).replace(/[\\/:*?"<>|]/g,' ').slice(0,80)+'.'+ext,{type,lastModified:1});
+  return PD.files[x.title]=f;
+}
+async function pdDo(mode){
+  if(pdBusy||!pdCur)return; pdBusy=true; $('#pdSave').disabled=$('#pdOpen').disabled=true; $('#pdErr').textContent=''; toast('악보를 내려받는 중…',8000);
+  try{
+    const f=await pdFile(pdCur); pdBusy=false; $('#pdDlg').style.display='none'; $('#pdImg').removeAttribute('src');
+    if(mode==='open'){toast('악보를 열었어요',1800); await openFiles([f])} else {await libAddFiles([f],''); H.searching=true; hRender()}
+  }catch(e){console.warn(e); pdBusy=false; $('#pdSave').disabled=$('#pdOpen').disabled=false; $('#pdErr').textContent='악보를 내려받지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요'; toast('내려받지 못했어요',2200)}
+}
+$('#pdOpen').onclick=()=>pdDo('open'); $('#pdSave').onclick=()=>pdDo('save'); $('#pdClose').onclick=pdClose;
+$('#pdDlg').addEventListener('click',e=>{if(e.target.id==='pdDlg')pdClose()});
 let hT; const hDebounce=()=>{clearTimeout(hT);hT=setTimeout(hRender,120)};
 $('#hqIn').addEventListener('input',e=>{H.q=e.target.value;if(!H.q.trim()&&!H.lvl&&!H.tag&&!H.key&&H.folder==null)H.searching=false;hDebounce()});
-$('#hqIn').addEventListener('keydown',e=>{e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();H.searching=true;hRender();hWeb(H.q)}else if(e.key==='Escape'){hClear()}});
+$('#hqIn').addEventListener('keydown',e=>{e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();H.searching=true;hRender();pdSchedule(true)}else if(e.key==='Escape'){hClear()}});
 function hClear(){H.q='';H.lvl=H.tag=H.key='';H.folder=null;H.searching=false;$('#hqIn').value='';hRender()}
 $('#hqClear').onclick=()=>{hClear();$('#hqIn').focus()};
-$('#hqGo').onclick=()=>{H.searching=true;hRender();hWeb(H.q)};
+$('#hqGo').onclick=()=>{H.searching=true;hRender();pdSchedule(true)};
 $('#hqScope').onclick=openLib;
 $('#hqAdd').onclick=()=>$('#fileAdd').click();
 $('#fileAdd').onchange=async e=>{const fl=[...e.target.files]; e.target.value=''; if(fl.length){await libAddFiles(fl,''); H.searching=true; hRender()}};
