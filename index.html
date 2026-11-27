@@ -228,7 +228,7 @@ main,#chordView{animation:hin .45s var(--ease) backwards}
 .hrow{display:flex;align-items:center;gap:10px}
 .hplus,.hgo,.hx{flex:none;width:44px;height:44px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;font:inherit}
 .hext{display:flex;gap:6px}
-.hext button{border:0;background:#f1f1ee;border-radius:999px;height:30px;padding:0 12px;font:inherit;font-size:13px;font-weight:500;color:#555;cursor:pointer;transition:background .15s,color .15s}
+.hext button{border:0;background:#f1f1ee;border-radius:50%;width:32px;height:32px;padding:0;display:grid;place-items:center;font:inherit;font-size:14px;font-weight:700;color:#555;cursor:pointer;transition:background .15s,color .15s}
 .hext button:hover{background:#e9e9e6;color:var(--ink)}
 .hscope{border:0;background:#f1f1ee;border-radius:18px;padding:0 16px;height:36px;font:inherit;font-size:14px;font-weight:500;color:#555;cursor:pointer}
 .hscope:hover{background:#e9e9e6}
@@ -559,7 +559,7 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
     <div class="hbox" id="hqBox">
       <input type="text" id="hqIn" placeholder="곡 이름, 가사, 분위기로 찾아보세요" autocomplete="off" enterkeyhint="search" aria-label="악보 검색">
       <div class="hrow">
-        <span class="hext" role="group" aria-label="외부 검색"><button type="button" id="hqGoogle" title="구글에서 이 곡 악보 이미지 찾기">구글</button><button type="button" id="hqNaver" title="네이버에서 이 곡 악보 이미지 찾기">네이버</button></span>
+        <span class="hext" role="group" aria-label="외부 검색"><button type="button" id="hqGoogle" title="구글에서 찾기" aria-label="구글에서 찾기">G</button><button type="button" id="hqNaver" title="네이버에서 찾기" aria-label="네이버에서 찾기">N</button></span>
         <button type="button" class="hx" id="hqClear" aria-label="지우기"><svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l8 8M10 2l-8 8"/></svg></button>
         <button type="button" class="hgo" id="hqGo" aria-label="검색"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17V4M4 9.5l6-6 6 6"/></svg></button>
       </div>
