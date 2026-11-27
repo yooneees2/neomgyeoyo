@@ -935,10 +935,8 @@ function renderTakes(){
   if(!R.takes.length){ul.innerHTML='<li class="empty" style="background:none">아직 녹음이 없어요</li>';return}
   R.takes.forEach(t=>{
     const li=document.createElement('li');
-    li.innerHTML='<div class="hd"><button class="nm" type="button" title="이름 바꾸기"><b></b><i aria-hidden="true">✎</i></button><span class="tag"></span></div><audio controls></audio><div class="bt"><button class="btn sm" data-a="cut">편집</button><button class="btn sm" data-a="dl">저장</button><button class="btn sm" data-a="del">삭제</button></div>';
+    li.innerHTML='<div class="hd"><button class="nm" type="button" title="이름 바꾸기"><b></b><i aria-hidden="true">✎</i></button></div><audio controls></audio><div class="bt"><button class="btn sm" data-a="cut">편집</button><button class="btn sm" data-a="share">공유</button><button class="btn sm" data-a="dl">저장</button><button class="btn sm" data-a="del">삭제</button></div>';
     li.querySelector('b').textContent=t.name;
-    if(t.rate&&t.rate!==1)li.querySelector('.tag').title='재생 속도 '+t.rate+'배';
-    li.querySelector('.tag').textContent=(t.page?t.page+'쪽 · ':'')+fmtT(t.dur)+(t.rate&&t.rate!==1?' · '+t.rate+'배속':'');
     const au=li.querySelector('audio'); au.src=t.url; au.preservesPitch=true; au.playbackRate=t.rate||1; au.addEventListener('play',()=>{au.playbackRate=t.rate||1});
     li.querySelector('.nm').onclick=()=>{ // 이름 바꾸기
       const b=li.querySelector('.nm'), inp=document.createElement('input'); inp.type='text'; inp.className='nmIn'; inp.value=t.name; inp.maxLength=40; inp.setAttribute('aria-label','녹음 이름');
@@ -947,6 +945,13 @@ function renderTakes(){
       inp.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();fin(true)}else if(e.key==='Escape'){e.preventDefault();fin(false)}}; inp.onblur=()=>fin(true);
     };
     li.querySelector('[data-a=cut]').onclick=()=>openTrim(t);
+    li.querySelector('[data-a=share]').onclick=async()=>{ // 휴대폰·PC의 공유 창으로 녹음 파일 보내기
+      const f=new File([t.blob],t.name+'.'+t.ext,{type:t.blob.type||'audio/'+(t.ext==='m4a'?'mp4':t.ext)});
+      try{
+        if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:t.name});return}
+      }catch(e){if(e&&e.name==='AbortError')return;console.warn(e)}
+      const a=document.createElement('a');a.href=t.url;a.download=f.name;a.click();toast('이 기기에서는 바로 공유할 수 없어서 파일로 저장했어요. 저장된 파일을 보내 주세요',4200);
+    };
     li.querySelector('[data-a=dl]').onclick=()=>{const a=document.createElement('a');a.href=t.url;a.download=t.name+'.'+t.ext;a.click()};
     li.querySelector('[data-a=del]').onclick=()=>{if(!confirm('"'+t.name+'" 녹음을 지울까요? 되돌릴 수 없어요.'))return;URL.revokeObjectURL(t.url);R.takes=R.takes.filter(x=>x!==t);takeTx('readwrite',st=>st.delete(t.id)).catch(()=>{});renderTakes()};
     ul.appendChild(li);
