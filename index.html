@@ -611,6 +611,7 @@ async function openFiles(fileList){
 }
 function openDemo(){S.doc={type:'demo',n:3};S.docId='demo';S.docName='데모';S.libId=null;S.page=1;afterOpen()}
 function afterOpen(){
+  if(S.tab==='rec')S.tab='turn'; // 녹음함에서 악보를 열면 악보 화면으로
   S.view='pdf'; S.prev=null; S.kOff=0; S.inst=0; S.capo=0; S.edit=false; $('#tgEdit').checked=false; $('#libModal').style.display='none';
   S.lastPart=null; const fk=S.fileKey[keyId()]; S.kIdx=fk?fk.idx:0; S.kMinor=fk?fk.minor:false;
   applyView(); render(); updateKeyUI(); mascot('turn');
