@@ -234,6 +234,8 @@ select{font:inherit;border:1px solid var(--line2);border-radius:10px;padding:5px
 .trimTimes b{color:var(--ink)}
 .trimHint{font-size:13px;color:var(--soft);margin-top:8px}
 .trimBtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+main.recOnly{grid-template-columns:minmax(0,1fr)}
+main.recOnly>aside.side{display:none}
 #recCard{padding:12px 14px}
 #recCard .recBtn{padding:7px 12px;font-size:14px}
 #recCard .recTime{font-size:18px;min-width:48px}
@@ -1239,7 +1241,7 @@ function applyView(){
   else{
     $$('.navbtn').forEach(b=>b.style.display=hasDoc?'':'none'); $('#paper').style.display=hasDoc?'block':'none'; $('#pager').style.display=hasDoc?'flex':'none';
   }
-  $('#recLib').style.display=rec?'block':'none'; $('#stage').style.display=rec?'none':'';
+  $('main').classList.toggle('recOnly',rec); $('#recLib').style.display=rec?'block':'none'; $('#stage').style.display=rec?'none':'';
 }
 function enterChord(){
   if(S.view==='chord')return;
