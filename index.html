@@ -196,6 +196,16 @@ body.home{background:var(--hbg)}
 .hnav .hl{border:0;background:transparent;font:inherit;font-size:15.5px;font-weight:500;color:#6e6e6a;padding:6px 8px;border-radius:10px;cursor:pointer;transition:color .2s}
 .hnav.libopen .hl.on:not(#tabLib){color:#6e6e6a;font-weight:500}.hnav.libopen #tabLib{color:var(--ink);font-weight:700}
 body.home header>:not(.hnav):not(.spacer),#libBtn{display:none!important}
+body.fs .app{max-width:none;padding:0}
+body.fs main{display:block;margin:0}
+body.fs #stage{height:100vh;height:100dvh;min-height:0;border-radius:0;border:0}
+body.fs #setSide{display:none!important}
+body.fs header{position:fixed;top:12px;right:12px;left:auto;margin:0;z-index:40;width:auto;flex-wrap:nowrap;gap:10px}
+body.fs header>:not(#tools):not(#fsBtn):not(#listenPill){display:none!important}
+body.fs header>*{transition:opacity .35s var(--ease)}
+body.fs.idle header>:not(#listenPill){opacity:0;pointer-events:none}
+body.fs .side{top:72px}
+@media (max-width:900px){body.fs #stage{height:calc(100dvh - 76px)}}
 main,#chordView{animation:hin .45s var(--ease) backwards}
 @keyframes hfade{from{opacity:0}to{opacity:1}}
 #libModal{animation:hfade .25s ease backwards}#libModal .libbox{animation:hin .4s var(--ease) backwards}
@@ -529,7 +539,7 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
   <button class="btn" id="textModeBtn" style="display:none">코드 텍스트 입력</button>
   <span id="listenPill"><i><b></b><b></b><b></b><b></b></i><span id="pillTxt">듣는 중</span></span>
   <button class="btn" id="libBtn">내 악보함</button>
-  <button class="btn pink" id="openBtn">악보 열기</button>
+  <button class="btn pink" id="fsBtn" type="button" aria-pressed="false">전체 화면</button>
   <input type="file" id="file" accept="application/pdf,image/*" multiple hidden>
 </header>
 
@@ -768,6 +778,18 @@ function mascot(state,ms=600){
   els.forEach(e=>e.classList.add(state));
   if(state!=='listening') setTimeout(()=>els.forEach(e=>e.classList.remove(state)),ms);
 }
+function setFs(on){
+  on=!!on; if(!!S.fs===on)return; S.fs=on; document.body.classList.toggle('fs',on); $('#fsBtn').textContent=on?'전체 화면 해제':'전체 화면'; $('#fsBtn').setAttribute('aria-pressed',on);
+  if(on){try{const e=document.documentElement; if(e.requestFullscreen)e.requestFullscreen().catch(()=>{})}catch(e){} bumpIdle(); toast('악보만 크게 보여요. Esc나 오른쪽 위 버튼으로 나올 수 있어요',2800)}
+  else{clearTimeout(idleT); document.body.classList.remove('idle'); try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}}
+  setTimeout(()=>{render()},150);
+}
+let idleT; const touchOnly=matchMedia('(hover:none)').matches;
+function bumpIdle(){document.body.classList.remove('idle'); clearTimeout(idleT); if(S.fs&&!touchOnly)idleT=setTimeout(()=>{if(S.fs&&!S.tool)document.body.classList.add('idle')},3000)}
+['mousemove','keydown','wheel'].forEach(ev=>document.addEventListener(ev,()=>{if(S.fs)bumpIdle()},{passive:true}));
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&S.fs)setFs(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.fs&&!document.fullscreenElement&&!S.tool&&$('#libModal').style.display!=='flex')setFs(false)});
+$('#fsBtn').onclick=()=>setFs(!S.fs);
 function setTool(t){ $('#keyHint').classList.remove('show');
   S.tool=(S.tool===t)?null:t; syncTools(); reconcileKey();
 }
@@ -778,7 +800,7 @@ function reconcileKey(){ // 키를 바꿨거나 키 패널이 열려 있으면 '
   if(want&&S.tab==='turn'){S.tab='key';applyView();render();updateKeyUI();syncTools()}
   else if(!want&&S.tab==='key'){S.tab='turn';applyView();render()}
 }
-function syncTools(){
+function syncTools(){ if(S.fs)bumpIdle();
   const t=S.tool||null; $$('#tools .tl').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
   $$('#sidePanel>.card').forEach(c=>c.classList.toggle('act',c.dataset.tool===t)); $('#sidePanel').classList.toggle('open',!!t);
   $('#sidePanel').scrollTop=0;
@@ -964,7 +986,7 @@ window.addEventListener('keydown',e=>{
 });
 
 /* ---------- 파일 열기 / 드래그 ---------- */
-['#openBtn','#keyUpload'].forEach(s=>$(s).onclick=()=>$('#file').click());
+$('#keyUpload').onclick=()=>$('#file').click();
 if(/[?&]demo=1/.test(location.search))setTimeout(openDemo,0);
 $('#file').onchange=e=>{openFiles(e.target.files);e.target.value=''};
 const stage=$('#stage'), uploadArea=$('#hqBox'), landing=$('#landing'), dropBox=$('#drop');
@@ -1491,7 +1513,7 @@ function applyView(){
   $('#optEdit').style.display=chord?'none':''; $('#saveKeyPdf').style.display=chord?'none':'';
   if(!key){S.edit=false;$('#tgEdit').checked=false}
   const hasDoc=!!S.doc&&S.doc.type!=='chord', home=!chord&&S.tab==='home';
-  $('#tools').style.display=(home||rec)?'none':'flex'; if(home||rec)S.tool=null; syncTools();
+  $('#tools').style.display=(home||rec)?'none':'flex'; if(home||rec){S.tool=null;if(S.fs)setFs(false)} syncTools();
   $('#keyUpload').style.display=((key||turn)&&!chord&&!hasDoc)?'flex':'none';
   $('#landing').style.display=home?'flex':'none'; $('#libBtn').style.display=home?'none':''; document.body.classList.toggle('home',home); $('main').style.display=home?'none':'';
   const isSet=!!S.doc&&S.doc.type==='set'&&!chord&&!rec; $('#setSide').style.display=isSet?'flex':'none'; $('main').classList.toggle('hasSet',isSet); if(isSet)renderSetList();
