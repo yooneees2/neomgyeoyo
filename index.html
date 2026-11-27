@@ -291,6 +291,18 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 .fdbox .err{color:var(--red);font-size:13px;min-height:20px;margin-top:6px}
 .fdbox .row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
 #folderDlg{z-index:55}
+#saveDlg{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:55;padding:16px}
+#saveDlg .svInfo{font-size:13px;color:var(--mut,#777);margin:2px 0 12px}
+#saveDlg .svOpt{display:block;width:100%;text-align:left;border:1.5px solid #e2e2de;border-radius:16px;background:#fff;padding:14px 16px;margin-bottom:10px;font:inherit;color:inherit}
+#saveDlg button.svOpt{cursor:pointer}
+#saveDlg button.svOpt:hover,#saveDlg .svLib button:hover{background:#f6f6f3}
+#saveDlg .svOpt b{display:block;font-size:16px}
+#saveDlg .svOpt small{display:block;font-size:12.5px;color:#777;margin-top:3px}
+#saveDlg .svLib{padding:0;overflow:hidden}
+#saveDlg .svLib button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:14px 16px;font:inherit;color:inherit;cursor:pointer}
+#saveDlg .svFold{display:flex;align-items:center;gap:8px;padding:8px 16px 12px;font-size:13px;color:#555;border-top:1px solid #eee}
+#saveDlg .svFold select{flex:1;min-width:0;font:inherit;padding:6px 8px;border-radius:10px;border:1px solid #ddd;background:#fff}
+#saveDlg button:disabled{opacity:.55;cursor:default}
 .libbox{max-width:860px;min-height:min(520px,84vh);max-height:88vh;text-align:left;display:flex;flex-direction:column;gap:12px}
 .libhd{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
 #pgPart{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -475,8 +487,8 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
       <div class="opt"><div>내 악기<small>읽는 코드를 바꿔 보여줘요</small></div>
         <select id="instSel"><option value="0">소리 그대로 (기타·피아노·보컬)</option><option value="2">Bb 악기 (클라리넷·트럼펫·테너색소폰)</option><option value="9">Eb 악기 (알토·바리톤 색소폰)</option><option value="7">F 악기 (호른)</option></select></div>
       <div class="keys" id="keyTip" style="margin-top:6px"></div>
-      <button class="btn pink" id="saveKeyPdf" style="width:100%;margin-top:12px">바뀐 악보 PDF로 저장</button>
-      <div class="keys" style="margin-top:6px;text-align:center">키를 바꾼 뒤 눌러요. 저장한 PDF는 그림이라 글자 선택은 안 돼요</div>
+      <button class="btn pink" id="saveKeyPdf" style="width:100%;margin-top:12px">바뀐 악보 저장</button>
+      <div class="keys" style="margin-top:6px;text-align:center">키를 바꾼 뒤 눌러요. PDF 파일로 받거나 내 악보함에 담을 수 있어요</div>
     </div>
 
     <!-- 메트로놈 -->
@@ -556,6 +568,19 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
     <div class="fdcolors" id="fdColors" role="radiogroup" aria-label="폴더 색깔"></div>
     <div class="err" id="fdErr" role="alert"></div>
     <div class="row"><button class="btn sm" id="fdCancel" type="button">취소</button><button class="btn sm pink" id="fdOk" type="button">만들기</button></div>
+  </div>
+</div>
+<div id="saveDlg" role="dialog" aria-modal="true" aria-labelledby="svTitle">
+  <div class="mbox fdbox">
+    <h2 id="svTitle">바뀐 악보 저장</h2>
+    <div class="svInfo" id="svInfo"></div>
+    <button class="svOpt" id="svPdf" type="button"><b>PDF로 저장하기</b><small>내 기기에 PDF 파일로 내려받아요</small></button>
+    <div class="svOpt svLib">
+      <button id="svLib" type="button"><b>악보함에 저장하기</b><small>내 악보함에 새 악보로 담아요</small></button>
+      <label class="svFold">저장할 폴더 <select id="svFolder" aria-label="저장할 폴더"></select></label>
+    </div>
+    <div class="err" id="svErr" role="alert"></div>
+    <div class="row"><button class="btn sm" id="svCancel" type="button">닫기</button></div>
   </div>
 </div>
 <div id="toast"></div>
@@ -743,6 +768,7 @@ $('#firstBtn').onclick=()=>go(1);
 $('#tapR').onclick=()=>go(S.page+1);
 $('#tapL').onclick=()=>go(S.page-1);
 window.addEventListener('keydown',e=>{
+  if($('#saveDlg').style.display==='flex'){if(e.key==='Escape')closeSaveDlg();return}
   if($('#folderDlg').style.display==='flex'){if(e.key==='Escape')closeFolderDlg();return}
   if($('#libModal').style.display==='flex'){if(e.key==='Escape'){if(S.libSelMode)toggleSelMode();else if(S.libView!=null){S.libView=null;renderLib()}else closeLib()}return}
   if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
@@ -1431,31 +1457,65 @@ async function pageCanvas(p){
   return ocrCanvas(Math.round(im.naturalWidth*k),Math.round(im.naturalHeight*k),(x,w,h)=>x.drawImage(im,0,0,w,h));
 }
 let saving=false;
-async function exportKeyPdf(){
+async function buildKeyPdf(progress){ // 바뀐 악보를 PDF(jsPDF)로 만들어 돌려줘요
+  const doc=S.doc, sh=shiftNow(), fl=flatsFor(sh), q=S.kMinor?'m':'', keyName=kname(S.kIdx+sh,fl)+q, name=S.docName||'악보';
+  let out=null;
+  for(let p=1;p<=doc.n;p++){
+    progress('저장 준비 중… '+p+'/'+doc.n);
+    const key=ckey(p);
+    if(!S.keyCache[key])S.keyCache[key]=await detectChords(p);
+    const c=await pageCanvas(p);
+    drawOverlay(c.getContext('2d'),c.width,c.height,S.keyCache[key],sh,fl);
+    const w=c.width,h=c.height,o=w>h?'l':'p';
+    if(!out)out=new jspdf.jsPDF({unit:'px',format:[w,h],orientation:o,hotfixes:['px_scaling']}); else out.addPage([w,h],o);
+    out.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',0,0,w,h);
+  }
+  return {out,keyName,name,n:doc.n,title:(name+' ('+keyName+' 키)')};
+}
+function openSaveDlg(){
   if(saving)return;
   if(!S.doc||S.doc.type==='chord'||S.doc.type==='demo'){toast('먼저 악보 파일(PDF·이미지)을 열어 주세요');return}
   const sh=shiftNow(); if(!sh){toast('먼저 원하는 키를 골라 주세요. 원래 키 그대로면 저장할 게 없어요');return}
   if(!window.jspdf){toast('PDF 저장 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요');return}
-  saving=true; const btn=$('#saveKeyPdf'), label=btn.textContent; btn.disabled=true;
-  const docId=S.docId, doc=S.doc, fl=flatsFor(sh), q=S.kMinor?'m':'', keyName=kname(S.kIdx+sh,fl)+q, name=S.docName||'악보';
-  try{
-    let out=null;
-    for(let p=1;p<=doc.n;p++){
-      btn.textContent='저장 준비 중… '+p+'/'+doc.n;
-      const key=ckey(p);
-      if(!S.keyCache[key])S.keyCache[key]=await detectChords(p);
-      const c=await pageCanvas(p);
-      drawOverlay(c.getContext('2d'),c.width,c.height,S.keyCache[key],sh,fl);
-      const w=c.width,h=c.height,o=w>h?'l':'p';
-      if(!out)out=new jspdf.jsPDF({unit:'px',format:[w,h],orientation:o,hotfixes:['px_scaling']}); else out.addPage([w,h],o);
-      out.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',0,0,w,h);
-    }
-    out.save((name+' ('+keyName+' 키).pdf').replace(/[\\/:*?"<>|]/g,'_'));
-    toast('바뀐 악보를 PDF로 저장했어요');
-  }catch(e){console.error(e);toast('PDF로 저장하지 못했어요')}
-  finally{saving=false;btn.disabled=false;btn.textContent=label;if(S.tab==='key')redrawKey()}
+  const fl=flatsFor(sh), keyName=kname(S.kIdx+sh,fl)+(S.kMinor?'m':'');
+  $('#svInfo').textContent=(S.docName||'악보')+' · '+keyName+' 키 · '+S.doc.n+'쪽';
+  const sel=$('#svFolder'); sel.innerHTML=''; sel.add(new Option('미분류',''));
+  folders().forEach(f=>sel.add(new Option(f,f)));
+  if(S.libId){try{libGet(S.libId).then(it=>{if(it&&it.folder&&folders().includes(it.folder))sel.value=it.folder})}catch(e){}}
+  $('#svErr').textContent=''; $('#saveDlg').style.display='flex'; $('#svPdf').focus();
 }
-$('#saveKeyPdf').onclick=exportKeyPdf;
+function closeSaveDlg(){if(saving)return;$('#saveDlg').style.display='none';$('#saveKeyPdf').focus()}
+async function runSave(mode){
+  if(saving)return; saving=true;
+  const bP=$('#svPdf'), bL=$('#svLib'), lp=bP.querySelector('b').textContent, ll=bL.querySelector('b').textContent;
+  const target=mode==='pdf'?bP.querySelector('b'):bL.querySelector('b');
+  bP.disabled=bL.disabled=$('#svFolder').disabled=$('#svCancel').disabled=true; $('#svErr').textContent='';
+  const folder=$('#svFolder').value;
+  try{
+    const r=await buildKeyPdf(t=>{target.textContent=t});
+    const fname=r.title.replace(/[\\/:*?"<>|]/g,'_');
+    if(mode==='pdf'){
+      r.out.save(fname+'.pdf'); toast('바뀐 악보를 PDF로 저장했어요');
+    }else{
+      target.textContent='악보함에 담는 중…';
+      const blob=r.out.output('blob'), file=new File([blob],fname+'.pdf',{type:'application/pdf',lastModified:Date.now()});
+      const id='pdf:'+fp(file)+':'+r.n;
+      await libPut({id,name:r.title,kind:'pdf',files:[file],pages:r.n,folder:folder||'',lastPage:1,addedAt:Date.now(),openedAt:0});
+      if(window.pdfjsLib){pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise.then(pd=>thumbFromPdf(pd)).then(d=>libSetThumb(id,d)).then(()=>{if(libOpen())renderLib()}).catch(()=>{})}
+      if(libOpen())renderLib();
+      toast('"'+r.title+'"을(를) '+(folder?'"'+folder+'" 폴더에':'악보함에')+' 저장했어요',3800);
+    }
+    saving=false; $('#saveDlg').style.display='none';
+  }catch(e){
+    console.error(e); $('#svErr').textContent=mode==='pdf'?'PDF로 저장하지 못했어요':'악보함에 저장하지 못했어요. 저장 공간이 부족할 수 있어요';
+  }finally{
+    saving=false; bP.disabled=bL.disabled=$('#svFolder').disabled=$('#svCancel').disabled=false; bP.querySelector('b').textContent=lp; bL.querySelector('b').textContent=ll;
+    if(S.tab==='key')redrawKey();
+  }
+}
+$('#saveKeyPdf').onclick=openSaveDlg;
+$('#svPdf').onclick=()=>runSave('pdf'); $('#svLib').onclick=()=>runSave('lib'); $('#svCancel').onclick=closeSaveDlg;
+$('#saveDlg').addEventListener('click',e=>{if(e.target.id==='saveDlg')closeSaveDlg()});
 
 /* ---------- 내 악보함 (이 브라우저의 IndexedDB에 저장) ---------- */
 let _db,libWarned=false;
