@@ -2335,7 +2335,7 @@ window.addEventListener('paste',e=>{
   e.preventDefault(); if(libOpen())libAddFiles(fs,S.libView||''); else hAddPasted(fs);
 });
 /* ---------- 공개 악보 검색 (위키미디어 커먼즈 · 서버 없이 브라우저에서 바로) ---------- */
-const OS={cat:null,load:null,res:[],show:12,sig:'',files:{},vrv:null,q:''};
+const OS={cat:null,load:null,res:[],show:{p:12,l:12},sig:'',files:{},vrv:null,q:''};
 const PD={pop:false,seq:0,want:'',inflight:'',term:'',res:[],state:'idle',show:12,cache:{},t:0,ko:[],files:{}};
 const PD_POP=[
  ['피아노 클래식',[['엘리제를 위하여','Fur Elise Beethoven piano'],['월광 소나타','Moonlight Sonata Beethoven piano'],['캐논','Canon in D Pachelbel piano'],['달빛 (클레르 드 륀)','Clair de Lune Debussy piano'],['짐노페디','Gymnopedie Satie piano'],['터키 행진곡','Rondo alla turca Mozart piano'],['쉬운 소나타 (K.545)','Sonata facile K 545 Mozart piano'],['즉흥환상곡','Fantaisie-Impromptu Chopin piano'],['녹턴 Op.9-2','Nocturne Op 9 No 2 Chopin piano'],['사랑의 꿈','Liebestraum Liszt piano'],['부르크뮐러 아라베스크','Burgmuller etudes faciles piano'],['트로이메라이','Traumerei Kinderszenen Schumann'],['브람스 자장가','Wiegenlied Brahms Guten Abend gut Nacht'],['헝가리 무곡 5번','Hungarian Dance 5 Brahms piano'],['사랑의 인사','Salut d\'amour Elgar piano'],['G선상의 아리아','Air on the G string Bach piano'],['미뉴에트 G장조','Minuet in G Petzold piano'],['예수 인류의 소망 되시니','Jesu Joy of Man\'s Desiring Bach piano'],['아름답고 푸른 도나우','blauen Donau Strauss piano'],['결혼 행진곡','Wedding March Mendelssohn piano']]],
@@ -2432,34 +2432,40 @@ function pdCard(x){
 let pdCur=null,pdFrom=null,pdBusy=false;
 
 /* ---------- OpenScore 가곡 악보 (저작권 없음 CC0) : 곡 목록 + 앱 안에서 악보 그리기 ---------- */
-const OS_RAW='https://raw.githubusercontent.com/OpenScore/Lieder/', VRV_URL='https://cdn.jsdelivr.net/npm/verovio@6.4.1/dist/verovio-toolkit-wasm.js';
+const OS_RAW='https://raw.githubusercontent.com/OpenScore/Lieder/', OS_PIANO='https://raw.githubusercontent.com/musetrainer/library/', VRV_URL='https://cdn.jsdelivr.net/npm/verovio@6.4.1/dist/verovio-toolkit-wasm.js';
 function osLoad(){
   if(OS.cat)return Promise.resolve(OS.cat);
   return OS.load||(OS.load=fetch('openscore-lieder.json').then(r=>{if(!r.ok)throw new Error('http '+r.status);return r.json()}).then(d=>{
-    OS.cat=d; OS.items=d.s.map(x=>{const c=d.c[x[0]]; return {title:x[2].replace(/^\d+\s+/,''),set:x[1],comp:c[0],ko:c[1],path:x[3],h:pdFold([c[0],c[1],x[1],x[2]].join(' ')),t:pdFold(x[2].replace(/^\d+\s+/,''))}});
-    return d}).catch(e=>{OS.load=null;throw e}));
+    OS.cat=d; const enc=p=>p.split('/').map(encodeURIComponent).join('/');
+    const pi=(d.p||[]).map(x=>({kind:'p',title:x[0],en:x[1],comp:x[2],ko:x[3],easy:!!x[5],set:'',path:'p/'+x[4],url:OS_PIANO+d.pv+'/scores/'+encodeURIComponent(x[4]),h:pdFold([x[0],x[1],x[2],x[3],x[5]?'easy 쉬운 초보':''].join(' ')),t:pdFold(x[0]+' '+x[1])}));
+    const li=d.s.map(x=>{const c=d.c[x[0]]; return {kind:'l',title:x[2].replace(/^\d+\s+/,''),set:x[1],comp:c[0],ko:c[1],path:x[3],url:OS_RAW+d.v+'/scores/'+enc(x[3]),h:pdFold([c[0],c[1],x[1],x[2]].join(' ')),t:pdFold(x[2].replace(/^\d+\s+/,''))}});
+    OS.items=[...pi,...li]; return d}).catch(e=>{OS.load=null;throw e}));
 }
 function osSearch(q){
   if(!OS.items)return []; const {term,ko}=pdTerm(q), tok=pdTokens(term);
-  const kt=ko.map(w=>pdFold(w)).filter(w=>OS.items.some(x=>x.ko&&pdFold(x.ko).includes(w)));
+  const kt=ko.map(w=>pdFold(w)).filter(w=>OS.items.some(x=>x.h.includes(w)));
   const all=[...tok,...kt]; if(!all.length)return [];
-  const out=[]; OS.items.forEach((x,i)=>{if(all.every(w=>x.h.includes(w))){out.push({x,s:tok.filter(w=>x.t.includes(w)).length*2-i/1e4})}});
-  return out.sort((a,b)=>b.s-a.s).map(o=>o.x);
+  const need=all.length<=2?all.length:Math.ceil(all.length*0.6), wantEasy=/쉬운|easy|초보|입문/i.test(q);
+  const sc=OS.items.map((x,i)=>({x,n:all.filter(w=>x.h.includes(w)).length,i})).filter(o=>o.n>=need), best=Math.max(0,...sc.map(o=>o.n));
+  return sc.filter(o=>o.n===best).map(o=>({x:o.x,s:tok.filter(w=>o.x.t.includes(w)).length*2+(wantEasy&&o.x.easy?1:0)-o.i/1e4})).sort((a,b)=>b.s-a.s).map(o=>o.x);
 }
 function osUpdate(q){
-  OS.q=q; if(!q||q.length<2){OS.res=[];OS.show=12;osRender();return}
-  osLoad().then(()=>{if(OS.q!==q)return; OS.res=osSearch(q); OS.show=12; osRender()}).catch(e=>{console.warn(e);OS.res=[];osRender()});
+  OS.q=q; if(!q||q.length<2){OS.res=[];OS.show={p:12,l:12};osRender();return}
+  osLoad().then(()=>{if(OS.q!==q)return; OS.res=osSearch(q); OS.show={p:12,l:12}; osRender()}).catch(e=>{console.warn(e);OS.res=[];osRender()});
 }
 function osRender(){
-  const box=$('#hqOS'), sig=OS.q+'|'+OS.show+'|'+OS.res.length; if(box.dataset.sig===sig&&(box.firstChild||!OS.res.length))return; box.dataset.sig=sig; box.innerHTML='';
+  const box=$('#hqOS'), sig=OS.q+'|'+OS.show.p+'|'+OS.show.l+'|'+OS.res.length; if(box.dataset.sig===sig&&(box.firstChild||!OS.res.length))return; box.dataset.sig=sig; box.innerHTML='';
   if(!OS.res.length||!OS.q)return;
-  const head=el('div','oshead'); head.append(el('b',null,'가곡·피아노 악보 '+OS.res.length+'곡'),el('span',null,'저작권이 없는 악보(OpenScore)를 앱에서 바로 그려 줘요')); box.appendChild(head);
-  const grid=el('div','osgrid'); OS.res.slice(0,OS.show).forEach(x=>{
-    const b=el('button','osrow'); b.type='button'; b.setAttribute('aria-label','가곡 악보 '+x.title+' 보기');
-    const d=el('span'); d.append(el('b',null,x.title),el('small',null,[x.ko?x.ko+' ('+x.comp+')':x.comp,x.set].filter(Boolean).join(' · ')));
-    b.append(el('span','osic','♪'),d); b.onclick=()=>osOpen(x,b); grid.appendChild(b)});
-  box.appendChild(grid);
-  if(OS.res.length>OS.show){const m=el('button','btn sm pdmore','더 보기 ('+(OS.res.length-OS.show)+')'); m.type='button'; m.onclick=()=>{OS.show+=12;osRender()}; box.appendChild(m)}
+  [['p','피아노 연주 악보','저작권이 없는 공개 악보를 앱에서 바로 그려 줘요'],['l','가곡·피아노 반주 악보','저작권이 없는 악보(OpenScore)를 앱에서 바로 그려 줘요']].forEach(([k,t,sub])=>{
+    const L=OS.res.filter(x=>x.kind===k); if(!L.length)return;
+    const head=el('div','oshead'); head.append(el('b',null,t+' '+L.length+'곡'),el('span',null,sub)); box.appendChild(head);
+    const grid=el('div','osgrid'); L.slice(0,OS.show[k]).forEach(x=>{
+      const b=el('button','osrow'); b.type='button'; b.setAttribute('aria-label',t+' '+x.title+' 보기');
+      const d=el('span'); d.append(el('b',null,x.title),el('small',null,[x.ko?x.ko+' ('+x.comp+')':x.comp,x.set,x.easy?'쉬운 곡':''].filter(Boolean).join(' · ')));
+      b.append(el('span','osic','♪'),d); b.onclick=()=>osOpen(x,b); grid.appendChild(b)});
+    box.appendChild(grid);
+    if(L.length>OS.show[k]){const m=el('button','btn sm pdmore','더 보기 ('+(L.length-OS.show[k])+')'); m.type='button'; m.onclick=()=>{OS.show[k]+=12;osRender()}; box.appendChild(m)}
+  });
 }
 function osVrv(){
   if(OS.vrv)return OS.vrv;
@@ -2479,20 +2485,20 @@ function osSvgToCanvas(svg,W){
 }
 async function osMake(x){
   if(OS.files[x.path])return OS.files[x.path];
-  const url=OS_RAW+OS.cat.v+'/scores/'+x.path.split('/').map(encodeURIComponent).join('/');
+  const url=x.url;
   const [buf,tk]=await Promise.all([fetch(url).then(r=>{if(!r.ok)throw new Error('http '+r.status);return r.arrayBuffer()}),osVrv()]);
   if(!tk.loadZipDataBuffer(buf))throw new Error('load'); const n=tk.getPageCount(); if(!n)throw new Error('pages');
   const cs=[]; for(let i=1;i<=n;i++){cs.push(await osSvgToCanvas(tk.renderToSVG(i),1500)); await new Promise(r=>setTimeout(r,0))}
   const W=cs[0].width,H=cs[0].height, J=window.jspdf&&window.jspdf.jsPDF; let file;
-  const nm=(x.title+' ('+(x.ko||x.comp)+')').replace(/[\\/:*?"<>|]/g,' ').slice(0,80);
+  const nm=(x.title+(x.comp?' ('+(x.ko||x.comp)+')':'')).replace(/[\\/:*?"<>|]/g,' ').slice(0,80);
   if(J){const pdf=new J({unit:'px',format:[W,H],orientation:'p',hotfixes:['px_scaling'],compress:true}); cs.forEach((c,i)=>{if(i)pdf.addPage([W,H],'p'); pdf.addImage(c.toDataURL('image/jpeg',.93),'JPEG',0,0,W,H,undefined,'FAST')}); file=new File([pdf.output('blob')],nm+'.pdf',{type:'application/pdf',lastModified:1})}
   else{const bl=await new Promise(r=>cs[0].toBlob(r,'image/png')); file=new File([bl],nm+'.png',{type:'image/png',lastModified:1})}
   return OS.files[x.path]={file,preview:cs[0].toDataURL('image/jpeg',.9),pages:n};
 }
 function osOpen(x,from){
   pdCur={os:x}; pdFrom=from; $('#pdTitle').textContent=x.title;
-  const meta=$('#pdMeta'); meta.textContent=[x.ko?x.ko+' ('+x.comp+')':x.comp,x.set,'저작권 없음(CC0)'].filter(Boolean).join(' · ')+' · ';
-  const a=document.createElement('a'); a.href='https://github.com/OpenScore/Lieder'; a.target='_blank'; a.rel='noopener'; a.textContent='출처 보기 ↗'; meta.appendChild(a);
+  const meta=$('#pdMeta'); meta.textContent=[x.ko?x.ko+' ('+x.comp+')':x.comp,x.set,x.kind==='l'?'저작권 없음(CC0)':'공개 악보'].filter(Boolean).join(' · ')+' · ';
+  const a=document.createElement('a'); a.href=x.kind==='l'?'https://github.com/OpenScore/Lieder':'https://github.com/musetrainer/library'; a.target='_blank'; a.rel='noopener'; a.textContent='출처 보기 ↗'; meta.appendChild(a);
   const im=$('#pdImg'); im.removeAttribute('src'); const ld=$('#pdLoad'); ld.hidden=false; ld.textContent='악보를 그리는 중이에요… 처음 한 번은 10초쯤 걸릴 수 있어요';
   $('#pdErr').textContent=''; $('#pdSave').disabled=$('#pdOpen').disabled=true; $('#pdDlg').style.display='flex'; $('#pdClose').focus();
   osMake(x).then(r=>{if(!pdCur||pdCur.os!==x)return; im.src=r.preview; ld.hidden=true; $('#pdSave').disabled=$('#pdOpen').disabled=false; $('#pdOpen').focus()})
