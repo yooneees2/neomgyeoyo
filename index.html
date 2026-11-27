@@ -1072,12 +1072,17 @@ function lev(a,b){const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;
 const NEXT_J=['넘겨','다음','넘어'].map(jamo);
 function fuzzyNext(raw){return raw.split(/\s+/).some(w=>{const j=jamo(w);return w.length<=4&&j.length>=4&&NEXT_J.some(t=>lev(j,t)<=1)})}
 const V={alive:false,kick:0,last:'',fails:0};
-function voiceStat(){const h=$d('#voiceHint'); h.textContent=!S.voice?'끄는 중이에요':(V.alive?'듣는 중이에요 "넘겨!"라고 해 보세요'+(V.last?' · 방금 들린 말: "'+V.last.slice(0,14)+'"':''):'마이크를 켜는 중이에요…')}
+function voiceStat(){const h=$d('#voiceHint'); h.textContent=!S.voice?'끄는 중이에요':(V.alive?'듣는 중이에요 "넘겨!"라고 해 보세요'+(V.last?' · 방금 들린 말: "'+V.last.slice(0,14)+'"':'')+(V.ev?' · '+V.ev:''):'마이크를 켜는 중이에요…'+(V.ev?' · '+V.ev:''))}
 function voiceMake(){
   if(rec){try{rec.onend=rec.onerror=rec.onresult=rec.onstart=null;rec.abort()}catch(_){}}
   const r=rec=new SR(); r.lang='ko-KR'; r.continuous=true; r.interimResults=true; r.maxAlternatives=5;
   let handledIdx=-1; // 이미 처리한 문장은 다시 처리하지 않음 (인식을 끊지 않고 계속 듣기)
-  r.onstart=()=>{handledIdx=-1;V.alive=true;V.fails=0;voiceStat()};
+  r.onstart=()=>{handledIdx=-1;V.alive=true;V.fails=0;V.ev='마이크 연결됨, 소리 기다리는 중';voiceStat()};
+  r.onaudiostart=()=>{V.ev='마이크 연결됨, 소리 기다리는 중';voiceStat()};
+  r.onsoundstart=()=>{V.ev='소리가 들려요';voiceStat()};
+  r.onspeechstart=()=>{V.ev='말소리가 들려요, 알아듣는 중…';voiceStat()};
+  r.onspeechend=()=>{V.ev='알아듣는 중…';voiceStat()};
+  r.onnomatch=()=>{V.ev='무슨 말인지 못 알아들었어요';voiceStat()};
   r.onresult=e=>{
     for(let i=e.resultIndex;i<e.results.length;i++){
       if(i<=handledIdx)continue;
@@ -1089,6 +1094,7 @@ function voiceMake(){
     }
   };
   r.onerror=e=>{
+    V.ev={'no-speech':'소리가 안 들려요 (마이크 소리가 너무 작거나 다른 마이크가 선택됐을 수 있어요)','network':'음성 인식 서버에 연결 안 됨','audio-capture':'마이크를 찾지 못함','not-allowed':'마이크 권한 없음','service-not-allowed':'이 브라우저는 음성 인식을 막고 있음','language-not-supported':'한국어 인식 불가'}[e.error]||('오류: '+e.error); voiceStat();
     if(e.error==='audio-capture'){toast('마이크를 찾지 못했어요. 마이크 연결과 브라우저 설정을 확인해 주세요',4500)}
     else if(e.error==='network'&&!V.warnNet){V.warnNet=1;toast('음성 인식 서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요',4500)}
     if(e.error==='not-allowed'||e.error==='service-not-allowed'){
