@@ -156,8 +156,58 @@ textarea.note:focus,#pop textarea:focus{outline:2px solid var(--ink);outline-off
 #toast.show{opacity:1;transform:translate(-50%,0)}
 
 .brand{cursor:pointer}
-#landing{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(0,.82fr);gap:40px;align-items:center;min-height:calc(100vh - 130px);padding:8px 0 24px}
-@media (max-width:900px){#landing{grid-template-columns:1fr;gap:28px}}
+/* --- 홈: 검색창 중심 --- */
+#landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 130px);padding:8px 0 48px}
+#landing.searching{justify-content:flex-start;padding-top:28px}
+.hq{width:min(800px,100%)}
+.hq h2{font-family:var(--font);font-size:40px;font-weight:500;text-align:center;margin:0 0 28px;letter-spacing:-.02em;color:var(--ink)}
+#landing.searching .hq h2{display:none}
+.hbox{background:#fff;border:1.5px solid var(--line);border-radius:30px;padding:18px 20px 14px;transition:border-color .15s,box-shadow .15s}
+.hbox:focus-within{border-color:var(--ink)}
+.hbox.dragging{border-color:var(--red);box-shadow:0 0 0 6px rgba(229,50,45,.12)}
+.hbox input[type=text]{width:100%;border:0;outline:0;background:transparent;font:inherit;font-size:21px;color:var(--ink);padding:2px 0 14px}
+.hbox input::placeholder{color:#9a9a96}
+.hrow{display:flex;align-items:center;gap:10px}
+.hplus,.hgo,.hx{flex:none;width:44px;height:44px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;font:inherit}
+.hplus{background:#f1f1ee;color:var(--ink)}.hplus:hover{background:#e9e9e6}
+.hscope{border:0;background:#f1f1ee;border-radius:18px;padding:0 16px;height:36px;font:inherit;font-size:14px;font-weight:500;color:#555;cursor:pointer}
+.hscope:hover{background:#e9e9e6}
+.hx{margin-left:auto;width:32px;height:32px;background:#e8e8e4;color:#666;display:none}
+.hx.show{display:grid}
+.hgo{background:#d9d9d4;color:#fff}.hgo.on{background:var(--ink)}
+.hx+.hgo{margin-left:0}.hgo{margin-left:auto}.hx.show+.hgo{margin-left:0}
+.hchips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px 0 0}
+.hchips[hidden]{display:none}
+.hchip{border:1px solid #e2e2de;background:#fff;border-radius:18px;height:36px;padding:0 17px;font:inherit;font-size:14.5px;font-weight:500;color:#444;cursor:pointer}
+.hchip:hover{border-color:var(--g3)}
+.hchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+select.hchip{appearance:none;-webkit-appearance:none;padding-right:30px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23666' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center}
+select.hchip.on{background-color:var(--ink);color:#fff}
+.hnote{text-align:center;color:#a0a09c;font-size:13.5px;margin-top:22px;line-height:1.9}
+.hnote button{border:0;background:none;color:#777;text-decoration:underline;font:inherit;cursor:pointer;padding:0}
+.hres{width:100%;margin-top:22px;display:flex;flex-direction:column;gap:12px}
+.hcount{font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline;margin-top:22px}
+.hcount span{font-size:12.5px;font-weight:400;color:#a0a09c}
+.hitem{display:flex;gap:16px;align-items:flex-start;background:#fff;border-radius:20px;padding:14px 18px;cursor:pointer;text-align:left;border:0;font:inherit;color:inherit;width:100%;position:relative}
+.hitem:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}
+.hitem:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.hth{flex:none;width:56px;height:68px;border-radius:8px;background:#ecece8;overflow:hidden;display:grid;place-items:center;font-size:11px;color:#999}
+.hth img{width:100%;height:100%;object-fit:cover}
+.hmain{flex:1;min-width:0}
+.hmain b{font-size:18px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hwhy{font-size:12.5px;color:var(--soft);margin-top:2px;min-height:1em}
+.htags{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center}
+.htag{font-size:12.5px;font-weight:500;border-radius:12px;padding:3px 11px;background:#f0f0ec;color:#555;border:0;font-family:inherit}
+.htag.easy{background:#e4f2e6;color:#2c6b3a}.htag.mid{background:#fdf2dc;color:#8a5a00}.htag.hard{background:#fbe3e1;color:#a32219}.htag.my{background:#fdeceb;color:#b32a20}
+.htag.add{background:transparent;border:1px dashed #cfcfca;color:#999;cursor:pointer}
+.htag.add:hover{color:#555;border-color:#999}
+.htagin{font:inherit;font-size:13px;border:1.5px solid var(--ink);border-radius:12px;padding:2px 10px;width:160px;outline:0}
+.hcard{margin-top:16px;background:#fff;border-radius:18px;padding:14px 18px;font-size:13.5px;color:#555;line-height:1.7;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.hcard .btn{flex:none}
+.hbar{height:6px;border-radius:3px;background:#ecece8;overflow:hidden;flex:1;min-width:140px}.hbar i{display:block;height:100%;background:var(--ink);width:0;transition:width .2s}
+.hempty{text-align:center;color:var(--soft);padding:26px 0 6px;font-size:14.5px}
+@media (max-width:700px){.hq h2{font-size:28px;margin-bottom:20px}.hbox input[type=text]{font-size:18px}.hscope{display:none}}
+
 .lleft.welcome{padding:0;max-width:none;position:relative}
 .lleft .hero::before{left:-60px;right:-48px}
 .lright{position:relative}
@@ -394,19 +444,24 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 </header>
 
 <section id="landing">
-  <div class="welcome lleft">
-    <div class="hero"><h2 aria-label="넘겨">넘겨<svg class="hnote" viewBox="10 12 38 42" aria-hidden="true"><path d="M24 44V21l19-4v22" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="44" r="6" fill="currentColor"/><circle cx="38" cy="40" r="6" fill="currentColor"/></svg></h2></div>
-    <div class="sub">악보는 눈으로, 페이지는 목소리로.</div>
-    <p>연주하는 손을 멈추지 않아도 돼요.<br>"넘겨!"라고 말하면 다음 장이 열려요.</p>
-    <div class="btns"><button class="btn pink" id="openBtn2">악보 열기</button><button class="btn" id="libBtn2">내 악보함</button></div>
-  </div>
-  <div class="lright">
-    <button type="button" class="score-upload" id="scoreUpload">
-      <span class="score-upload-plus" aria-hidden="true"><svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M22 6v32M6 22h32"/></svg></span>
-      <strong>악보 추가하기</strong>
-      <span class="score-upload-help">클릭하거나 악보를 여기에 끌어다 놓으세요</span>
-      <span class="score-upload-format">PDF · 이미지 파일</span>
-    </button>
+  <div class="hq">
+    <h2>어떤 악보를 찾으세요?</h2>
+    <div class="hbox" id="hqBox">
+      <input type="text" id="hqIn" placeholder="곡 이름, 가사, 분위기로 찾아보세요" autocomplete="off" enterkeyhint="search" aria-label="악보 검색">
+      <div class="hrow">
+        <button type="button" class="hplus" id="hqAdd" aria-label="악보 추가하기" title="악보 추가하기 (PDF·이미지)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M11 3v16M3 11h16"/></svg></button>
+        <button type="button" class="hscope" id="hqScope" title="폴더로 정리하고 순서대로 보기">내 악보함에서 찾기</button>
+        <button type="button" class="hx" id="hqClear" aria-label="지우기"><svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l8 8M10 2l-8 8"/></svg></button>
+        <button type="button" class="hgo" id="hqGo" aria-label="검색"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17V4M4 9.5l6-6 6 6"/></svg></button>
+      </div>
+    </div>
+    <div class="hchips" id="hqChips"></div>
+    <div class="hchips" id="hqFilters" hidden></div>
+    <div id="hqAI"></div>
+    <div id="hqCount"></div>
+    <div class="hres" id="hqRes"></div>
+    <div class="hnote" id="hqNote"></div>
+    <input type="file" id="fileAdd" accept="application/pdf,image/*" multiple hidden>
   </div>
 </section>
 
@@ -778,10 +833,10 @@ window.addEventListener('keydown',e=>{
 });
 
 /* ---------- 파일 열기 / 드래그 ---------- */
-['#openBtn','#openBtn2','#scoreUpload','#keyUpload'].forEach(s=>$(s).onclick=()=>$('#file').click());
+['#openBtn','#keyUpload'].forEach(s=>$(s).onclick=()=>$('#file').click());
 if(/[?&]demo=1/.test(location.search))setTimeout(openDemo,0);
 $('#file').onchange=e=>{openFiles(e.target.files);e.target.value=''};
-const stage=$('#stage'), uploadArea=$('#scoreUpload'), landing=$('#landing'), dropBox=$('#drop');
+const stage=$('#stage'), uploadArea=$('#hqBox'), landing=$('#landing'), dropBox=$('#drop');
 let dragDepth=0;
 const hasFiles=e=>e.dataTransfer&&[...(e.dataTransfer.types||[])].includes('Files');
 function setDrag(on){if(libOpen()){$('#libModal .libbox').classList.toggle('filedrag',on);uploadArea.classList.remove('dragging');dropBox.style.display='none';return}$('#libModal .libbox').classList.remove('filedrag');const home=landing.style.display!=='none';uploadArea.classList.toggle('dragging',on&&home);dropBox.style.display=(on&&!home)?'flex':'none'}
@@ -789,7 +844,7 @@ function setDrag(on){if(libOpen()){$('#libModal .libbox').classList.toggle('file
 window.addEventListener('dragenter',e=>{if(!hasFiles(e))return;e.preventDefault();dragDepth++;setDrag(true)});
 window.addEventListener('dragover',e=>{if(!hasFiles(e))return;e.preventDefault();e.dataTransfer.dropEffect='copy'});
 window.addEventListener('dragleave',e=>{if(!hasFiles(e))return;dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)setDrag(false)});
-window.addEventListener('drop',e=>{if(!hasFiles(e))return;e.preventDefault();dragDepth=0;setDrag(false);if(libOpen())libAddFiles(e.dataTransfer.files,S.libView||'');else openFiles(e.dataTransfer.files)});
+window.addEventListener('drop',e=>{if(!hasFiles(e))return;e.preventDefault();dragDepth=0;setDrag(false);if(libOpen())libAddFiles(e.dataTransfer.files,S.libView||'');else if(landing.style.display!=='none')libAddFiles(e.dataTransfer.files,'').then(()=>{H.searching=true;hRender()});else openFiles(e.dataTransfer.files)});
 $('.brand').onclick=()=>{
   if(R.on)stopRec();
   S.view='pdf'; S.doc=null; S.docId=''; S.prev=null; S.tab=S.tab||'turn';
@@ -1215,9 +1270,9 @@ async function pdfTextChords(page){ // 글자가 들어 있는 PDF → 정확한
   const out=[]; lines.forEach((l,i)=>{l.toks.sort((a,b)=>a.x0-b.x0);out.push(...pickChords(l.toks,vp.width,vp.height,i))});
   return out;
 }
-async function ocrChords(canvas){ // 스캔본·이미지 → 글자 인식(OCR)
+async function ocrChords(canvas,quiet){ // 스캔본·이미지 → 글자 인식(OCR)
   if(!window.Tesseract){const e=new Error('Tesseract 없음');e.net=true;throw e}
-  const res=await Tesseract.recognize(canvas,'eng',{logger:m=>{if(m.status==='recognizing text')setDetect('키 변경중 '+Math.round(m.progress*100)+'%')}});
+  const res=await Tesseract.recognize(canvas,'eng',{logger:m=>{if(!quiet&&m.status==='recognizing text')setDetect('키 변경중 '+Math.round(m.progress*100)+'%')}});
   const d=res.data, lines=d.lines||(d.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[])), out=[];
   lines.forEach((ln,i)=>{
     const toks=(ln.words||[]).filter(w=>w.text.trim()).map(w=>({s:w.text.trim(),x0:w.bbox.x0,x1:w.bbox.x1,y0:w.bbox.y0,y1:w.bbox.y1,conf:w.confidence}));
@@ -1311,9 +1366,9 @@ function applyView(){
   if(!key){S.edit=false;$('#tgEdit').checked=false}
   const hasDoc=!!S.doc&&S.doc.type!=='chord', home=!chord&&!hasDoc&&!key&&!rec;
   $('#keyUpload').style.display=(key&&!chord&&!hasDoc)?'flex':'none';
-  $('#landing').style.display=home?'grid':'none'; $('main').style.display=home?'none':'';
+  $('#landing').style.display=home?'flex':'none'; $('#libBtn').style.display=home?'none':''; $('main').style.display=home?'none':'';
   const isSet=!!S.doc&&S.doc.type==='set'&&!chord&&!rec; $('#setSide').style.display=isSet?'flex':'none'; $('main').classList.toggle('hasSet',isSet); if(isSet)renderSetList();
-  if(home)refreshResume();
+  if(home&&window.__homeReady)homeShown();
   if(chord){$('#paper').style.display='none';$('#pager').style.display='none'}
   else{
     $$('.navbtn').forEach(b=>b.style.display=hasDoc?'':'none'); $('#paper').style.display=hasDoc?'block':'none'; $('#pager').style.display=hasDoc?'flex':'none';
@@ -1700,12 +1755,12 @@ async function libAddFiles(fileList,folder){
   if(!pdfs.length&&!imgs.length){toast('PDF나 이미지(JPG·PNG) 파일을 올려 주세요');return}
   if(pdfs.length&&!window.pdfjsLib){toast('PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요');return}
   let added=0,dup=0,fail=0;
-  const add=async(id,name,kind,fs,pages)=>{if(await libGet(id)){dup++;return}await libPut({id,name,kind,files:fs,pages,folder:folder||'',lastPage:1,addedAt:Date.now(),openedAt:0});added++};
+  const add=async(id,name,kind,fs,pages,idx)=>{if(await libGet(id)){dup++;return}await libPut({id,name,kind,files:fs,pages,folder:folder||'',lastPage:1,addedAt:Date.now(),openedAt:0,idx:idx||undefined,tags:[]});added++};
   toast('악보함에 담는 중…');
-  for(const f of pdfs){try{const pd=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;const id='pdf:'+fp(f)+':'+pd.numPages;await add(id,baseName(f.name),'pdf',[f],pd.numPages);thumbFromPdf(pd).then(d=>libSetThumb(id,d)).catch(()=>{})}catch(e){console.warn(e);fail++}}
+  for(const f of pdfs){try{const pd=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;const id='pdf:'+fp(f)+':'+pd.numPages;let ix=null;try{ix=await indexPdfDoc(pd);if(ix.scan)ix=null}catch(e){console.warn(e)}await add(id,baseName(f.name),'pdf',[f],pd.numPages,ix);thumbFromPdf(pd).then(d=>libSetThumb(id,d)).catch(()=>{})}catch(e){console.warn(e);fail++}}
   if(imgs.length){try{await add('img:'+imgs.map(fp).join(',')+':'+imgs.length,baseName(imgs[0].name)+(imgs.length>1?' 외 '+(imgs.length-1)+'장':''),'img',imgs,imgs.length)}catch(e){console.warn(e);fail++}}
   toast((added?added+'개를 '+(folder?'"'+folder+'" 폴더에':'악보함에')+' 담았어요':'새로 담은 악보가 없어요')+(dup?' (이미 있는 '+dup+'개는 건너뛰었어요)':'')+(fail?' · '+fail+'개는 읽지 못했어요':''),3800);
-  if(libOpen())renderLib(); refreshResume();
+  if(libOpen())renderLib(); homeAfterAdd();
 }
 function selIds(items){ // 고른 순서대로 악보 id 목록 (폴더를 고르면 그 안의 악보를 화면에 보이는 순서대로 펼쳐요)
   const ids=[], seen=new Set(), add=id=>{if(!seen.has(id)){seen.add(id);ids.push(id)}};
@@ -1752,7 +1807,7 @@ function addFolder(){
   store.set('nm-folders',[...fl,n]); if(fdPick!=='gray')store.set('nm-folder-colors',{...fColors(),[n]:fdPick}); S.libView=null; $('#libSearch').value=''; closeFolderDlg(); renderLib(); toast('"'+n+'" 폴더를 만들었어요');
 }
 function refreshResume(){}
-['#libBtn','#libBtn2'].forEach(q=>$(q).onclick=openLib);
+$('#libBtn').onclick=openLib;
 $('#libClose').onclick=closeLib; $('#libBack').onclick=()=>{S.libView=null;renderLib()}; $('#libDelFolder').onclick=delSelected; $('#libSelBtn').onclick=toggleSelMode; $('#libPlay').onclick=openSet; makeDropTarget($('#libBack'),'');
 $('#libSearch').oninput=renderLib; $('#libSearch').onkeydown=e=>{if(e.key==='Escape'&&$('#libSearch').value){$('#libSearch').value='';renderLib();e.stopPropagation()}};
 $('#fdOk').onclick=addFolder; $('#fdCancel').onclick=closeFolderDlg;
@@ -1763,6 +1818,242 @@ $('#libModal').addEventListener('click',e=>{if(e.target.id==='libModal')closeLib
 /* ---------- 시작 ---------- */
 applyMode(); syncVoice(); loadTakes(); applyView(); refreshResume();
 
+
+/* ================= 홈: 악보 검색 · 자동 태그 · 말로 찾기 ================= */
+const CHO=['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const choseong=s=>[...s].map(ch=>{const c=ch.charCodeAt(0);return c>=0xAC00&&c<=0xD7A3?CHO[Math.floor((c-0xAC00)/588)]:ch}).join('');
+const nrm=s=>(s||'').toLowerCase().replace(/\s+/g,'');
+const LVL={easy:'쉬운 곡',mid:'보통',hard:'어려운 곡'};
+const BARRE=new Set(['F','F#','Gb','Bb','A#','B','C#','Db','G#','Ab','D#','Eb']);
+const lvlOf=(n,b)=>!n?null:(n<=4&&b===0)?'easy':(n>8||b>=3)?'hard':'mid';
+function buildIdx(names,lyrText){ // 읽은 코드 목록과 가사로 검색용 정보를 만들어요
+  const set=new Set(); let first=null, barre=0;
+  names.forEach(t=>{const m=String(t).match(CH); if(!m)return; const base=m[1]+m[2]+m[3]; if(!first)first=m; if(!set.has(base)){set.add(base); if(BARRE.has(m[1]+m[2]))barre++}});
+  const minor=first?/^(m(?!aj)|min)/.test(first[3]):false;
+  return {v:1,lyr:(lyrText||'').replace(/\s+/g,'').slice(0,1500),ch:[...set],key:first?first[1]+first[2]+(minor?'m':''):'',n:set.size,barre,level:lvlOf(set.size,barre),scan:false};
+}
+async function indexPdfDoc(pd){ // 글자가 들어 있는 PDF → 코드·가사를 바로 읽어요 (글자가 없으면 {scan:true})
+  const names=[], lyr=[]; let textPages=0; const N=Math.min(pd.numPages,10);
+  for(let p=1;p<=N;p++){
+    const pg=await pd.getPage(p), vp=pg.getViewport({scale:1}), tc=await pg.getTextContent();
+    const items=tc.items.filter(it=>it.str&&it.str.trim()); if(items.length<3)continue; textPages++;
+    const toks=[];
+    for(const it of items){
+      const tx=pdfjsLib.Util.transform(vp.transform,it.transform), fh=Math.hypot(tx[2],tx[3])||10, iw=it.width, L=it.str.length, re=/\S+/g; let m;
+      while((m=re.exec(it.str)))toks.push({s:m[0],x0:tx[4]+m.index/L*iw,x1:tx[4]+(m.index+m[0].length)/L*iw,y0:tx[5]-fh*0.82,y1:tx[5]+fh*0.22,yb:tx[5],fh});
+    }
+    toks.sort((a,b)=>a.yb-b.yb||a.x0-b.x0);
+    const lines=[]; for(const t of toks){const l=lines[lines.length-1]; if(l&&Math.abs(l.yb-t.yb)<t.fh*0.5)l.toks.push(t); else lines.push({yb:t.yb,toks:[t]})}
+    lines.forEach((l,i)=>{
+      l.toks.sort((a,b)=>a.x0-b.x0);
+      pickChords(l.toks,vp.width,vp.height,i).forEach(c=>names.push(c.t));
+      const h=l.toks.filter(t=>/[가-힣]/.test(t.s)); if(h.length)lyr.push(h.map(t=>t.s).join(''));
+    });
+  }
+  return textPages?buildIdx(names,lyr.join(' ')):{v:1,scan:true,lyr:'',ch:[],key:'',n:0,barre:0,level:null};
+}
+const libUpdate=async(id,fn)=>{const it=await libGet(id); if(!it)return null; fn(it); await libPut(it); return it};
+
+/* 읽기 대기열: 이미 담아 둔 악보 · 사진 악보도 차례로 내용을 읽어요 (한 번에 하나) */
+const IDXQ={run:false,total:0,done:0};
+async function idxOne(it){
+  const files=libRescue(it); if(!files.length)return {v:1,scan:true,lyr:'',ch:[],key:'',n:0,barre:0,level:null,pend:false};
+  const isPdf=it.kind==='pdf'||/pdf/i.test(files[0].type); let idx;
+  if(isPdf){
+    if(!window.pdfjsLib)return null;
+    const pd=await pdfjsLib.getDocument({data:await files[0].arrayBuffer()}).promise; idx=await indexPdfDoc(pd);
+    if(idx.scan){ // 스캔본 PDF → 1쪽만 글자 인식(OCR)
+      if(!window.Tesseract){idx.pend=true;return idx}
+      const pg=await pd.getPage(1), v0=pg.getViewport({scale:1}), vp=pg.getViewport({scale:Math.min(2200/v0.width,3)});
+      const c=ocrCanvas(Math.round(vp.width),Math.round(vp.height),()=>{}); await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+      idx=Object.assign(buildIdx((await ocrChords(c,true)).map(x=>x.t),''),{ocr:true});
+    }
+  }else{
+    if(!window.Tesseract)return {v:1,scan:true,pend:true,lyr:'',ch:[],key:'',n:0,barre:0,level:null};
+    const im=await loadImg(files[0]), k=im.naturalWidth<1400?1400/im.naturalWidth:Math.min(1,2400/im.naturalWidth);
+    const c=ocrCanvas(Math.round(im.naturalWidth*k),Math.round(im.naturalHeight*k),(x,w,h)=>x.drawImage(im,0,0,w,h));
+    idx=Object.assign(buildIdx((await ocrChords(c,true)).map(x=>x.t),''),{ocr:true});
+  }
+  return idx;
+}
+async function idxRun(){
+  if(IDXQ.run)return; IDXQ.run=true;
+  try{
+    for(;;){
+      const all=(await libAll()).filter(libOK).filter(x=>!x.idx||(x.idx.pend&&window.Tesseract));
+      IDXQ.total=Math.max(IDXQ.total,IDXQ.done+all.length); if(!all.length)break;
+      hIdxNote(); const it=all[0]; let idx=null;
+      try{idx=await idxOne(it)}catch(e){console.warn('index',e)}
+      await libUpdate(it.id,x=>{x.idx=idx||{v:1,scan:true,fail:true,lyr:'',ch:[],key:'',n:0,barre:0,level:null}});
+      IDXQ.done++; if(AI.on)aiRun(); hRender();
+    }
+  }finally{IDXQ.run=false;IDXQ.total=IDXQ.done=0;hIdxNote()}
+}
+function hIdxNote(){const n=$('#hqNote'); if(!n)return; if(IDXQ.run&&IDXQ.total)n.dataset.idx='악보 내용을 읽는 중… ('+Math.min(IDXQ.done+1,IDXQ.total)+'/'+IDXQ.total+')'; else delete n.dataset.idx; hNote()}
+
+/* 말로 찾기 (기기 안의 작은 AI) — 켜면 첫 한 번만 내려받고, 그다음부터는 인터넷 없이도 돼요 */
+const AI={on:false,loading:false,err:'',pct:0,ext:null,qCache:{},embBusy:false,embDone:0,embTotal:0};
+const AI_URL='https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1', AI_MODEL='Xenova/multilingual-e5-small';
+async function aiEmbed(text,kind){
+  if(window.__aiMock)return window.__aiMock(kind+': '+text);
+  const o=await AI.ext(kind+': '+text,{pooling:'mean',normalize:true}); return Float32Array.from(o.data);
+}
+async function aiEnable(){
+  if(AI.on||AI.loading)return; AI.loading=true; AI.err=''; AI.pct=0; hRender();
+  try{
+    if(!window.__aiMock){
+      const m=await import(AI_URL); m.env.allowLocalModels=false; const files={};
+      AI.ext=await m.pipeline('feature-extraction',AI_MODEL,{dtype:'q8',progress_callback:p=>{
+        if(p&&p.file&&p.total){files[p.file]={l:p.loaded||0,t:p.total}; let l=0,t=0; for(const k in files){l+=files[k].l;t+=files[k].t} AI.pct=t?Math.round(l/t*100):0; hAIcard()}
+      }});
+    }
+    AI.on=true; store.set('nm-ai','1'); aiRun();
+  }catch(e){console.warn('ai',e); AI.err='말로 찾기를 켜지 못했어요. 인터넷 연결을 확인한 뒤 다시 눌러 주세요'; store.set('nm-ai','')}
+  AI.loading=false; hRender();
+}
+const aiText=it=>(it.name||'')+' '+((it.tags||[]).join(' '))+' '+((it.idx&&it.idx.lyr)||'').slice(0,400);
+async function aiRun(){ // 악보마다 뜻 값을 만들어 악보함에 함께 저장해요
+  if(!AI.on||AI.embBusy)return; AI.embBusy=true;
+  try{
+    for(;;){
+      const todo=(await libAll()).filter(libOK).filter(x=>x.idx&&(!x.emb||x.embTxt!==aiText(x))); AI.embTotal=Math.max(AI.embTotal,AI.embDone+todo.length); if(!todo.length)break;
+      const it=todo[0], txt=aiText(it), e=await aiEmbed(txt,'passage');
+      await libUpdate(it.id,x=>{x.emb=e;x.embTxt=aiText(x)===txt?txt:'';}); AI.embDone++; hAIcard();
+    }
+  }catch(e){console.warn('embed',e)}
+  AI.embBusy=false; AI.embDone=AI.embTotal=0; hRender();
+}
+const cosine=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s};
+
+/* 검색 */
+const H={q:'',lvl:'',tag:'',key:'',folder:null,items:[],searching:false};
+function parseQ(raw){
+  let s=raw||'', q={words:[],level:'',maxN:0,key:''}, m;
+  if((m=s.match(/코드\s*(\d+)\s*개\s*이하/))){q.maxN=+m[1];s=s.replace(m[0],' ')}
+  if((m=s.match(/([A-Ga-g][#♯b♭]?m?)\s*키/))){q.key=m[1][0].toUpperCase()+m[1].slice(1).replace('♯','#').replace('♭','b');s=s.replace(m[0],' ')}
+  if(/쉬운|쉽게|쉬워|초보/.test(s)){q.level='easy';s=s.replace(/쉬운|쉽게|쉬워|초보자?용?/g,' ')}
+  if(/어려운|어렵/.test(s)){q.level='hard';s=s.replace(/어려운|어렵게?/g,' ')}
+  q.words=s.split(/[\s,]+/).map(w=>w.replace(/(곡|노래|악보|느낌|분위기|찾아줘|찾아|주세요|있는|같은|스타일)$/,'')).map(nrm).filter(Boolean);
+  return q;
+}
+function wordHit(w,it){ // 한 낱말이 어디에 걸리는지 {w:점수,why:이유}
+  const name=nrm(it.name), tags=(it.tags||[]).map(nrm), lyr=(it.idx&&it.idx.lyr)||'', jamo=/^[ㄱ-ㅎ]+$/.test(w);
+  if(jamo){return choseong(name).includes(w)?{s:2,why:'제목의 초성이 맞아요'}:null}
+  if(name.includes(w))return {s:3,why:'제목에 "'+w+'"이(가) 있어요'};
+  const tg=tags.find(t=>t.length>=2&&(t.includes(w)||w.includes(t))||t===w); if(tg)return {s:3,why:'내 태그 "'+tg+'"이(가) 붙어 있어요'};
+  if(w.length>=2&&lyr.includes(w))return {s:1.5,why:'가사에서 "'+w+'"을(를) 찾았어요'};
+  if(it.idx&&it.idx.ch&&it.idx.ch.some(c=>nrm(c)===w))return {s:2,why:'"'+w+'" 코드가 들어 있어요'};
+  return null;
+}
+async function hSearch(){
+  const items=H.items.filter(it=>!H.folder&&H.folder!==''?true:(it.folder||'')===H.folder), q=parseQ(H.q); let list=[], unmatched=[];
+  const pass=it=>{const x=it.idx||{}; if((q.level||H.lvl)&&x.level!==(q.level||H.lvl))return false; if(q.maxN&&!(x.n>0&&x.n<=q.maxN))return false; if((q.key||H.key)&&nrm(x.key)!==nrm(q.key||H.key))return false; if(H.tag&&!(it.tags||[]).includes(H.tag))return false; return true};
+  const base=items.filter(pass);
+  if(!q.words.length){list=base.slice().sort((a,b)=>(b.openedAt||b.addedAt||0)-(a.openedAt||a.addedAt||0)).map(it=>({it,why:''}))}
+  else{
+    const hits=base.map(it=>{let sc=0,whys=[],all=true; for(const w of q.words){const h=wordHit(w,it); if(h){sc+=h.s;whys.push(h.why)}else all=false} return {it,sc,all,why:whys[0]||''}});
+    list=hits.filter(h=>h.all).sort((a,b)=>b.sc-a.sc);
+    if(AI.on){
+      const key=q.words.join(' '); let qe=AI.qCache[key]; if(!qe){qe=await aiEmbed(key,'query');AI.qCache[key]=qe}
+      const sims=base.filter(it=>it.emb).map(it=>({it,sim:cosine(qe,it.emb)})).sort((a,b)=>b.sim-a.sim);
+      if(sims.length){const top=sims[0].sim; const have=new Set(list.map(h=>h.it.id)); sims.filter(s=>s.sim>=top-0.06&&!have.has(s.it.id)).slice(0,Math.max(0,8-list.length)).forEach(s=>list.push({it:s.it,why:'뜻이 가까워요',sem:true}))}
+    }
+    if(!list.length)unmatched=q.words.filter(w=>!/^[ㄱ-ㅎ]+$/.test(w));
+  }
+  return {list,unmatched,q};
+}
+let hSeq=0;
+async function hRender(){
+  const seq=++hSeq; let all=[]; try{all=(await libAll()).filter(libOK)}catch(e){}
+  H.items=all; const typed=!!H.q.trim()||H.searching; if(!typed&&!(H.lvl||H.tag||H.key||H.folder!=null))H.searching=false;
+  const land=$('#landing'); land.classList.toggle('searching',typed||H.searching);
+  const hasText=!!H.q.trim(); $('#hqClear').classList.toggle('show',hasText); $('#hqGo').classList.toggle('on',hasText);
+  const sp=typed||H.searching;
+  $('#hqChips').hidden=sp; $('#hqFilters').hidden=!sp;
+  if(!sp){hChips();$('#hqRes').innerHTML='';$('#hqCount').innerHTML='';hAIcard([]);hNote();return}
+  hFilters();
+  const r=await hSearch(); if(seq!==hSeq)return;
+  const cnt=$('#hqCount'); cnt.className='hcount';
+  cnt.innerHTML=''; if(r.list.length){cnt.append(el('div',null,'내 악보함에서 '+r.list.length+'곡을 찾았어요'),el('span',null,r.list.some(x=>x.sem)?'뜻이 가까운 순서':'')); cnt.firstChild.style.fontWeight='700'; cnt.style.display='flex'}else cnt.style.display='none';
+  const res=$('#hqRes'); res.innerHTML='';
+  if(!all.length)res.appendChild(el('div','hempty','아직 악보함이 비어 있어요. + 버튼으로 악보를 추가해 보세요.'));
+  else if(!r.list.length)res.appendChild(el('div','hempty',hasText?'찾는 곡이 없어요.':'조건에 맞는 악보가 없어요.'));
+  r.list.forEach(x=>res.appendChild(hItem(x)));
+  hAIcard(r.unmatched); hNote(r);
+}
+function hItem(x){
+  const it=x.it, b=el('div','hitem'); b.tabIndex=0; b.setAttribute('role','button'); b.setAttribute('aria-label','악보 '+(it.name||'')+' 열기');
+  const th=el('span','hth'); if(it.thumb){const im=document.createElement('img');im.alt='';im.src=it.thumb;th.appendChild(im)}else th.textContent=it.kind==='pdf'?'PDF':'IMG';
+  const m=el('div','hmain'); m.append(el('b',null,it.name||'이름 없는 악보'),el('div','hwhy',x.why));
+  const tg=el('div','htags'), id=it.idx||{};
+  if(id.level)tg.appendChild(el('span','htag '+id.level,LVL[id.level])); if(id.key)tg.appendChild(el('span','htag',id.key)); if(id.n)tg.appendChild(el('span','htag','코드 '+id.n+'개'));
+  (it.tags||[]).forEach(t=>tg.appendChild(el('span','htag my','#'+t)));
+  const add=el('button','htag add','+ 태그'); add.type='button'; add.onclick=ev=>{ev.stopPropagation();hTagEdit(it,tg,add)}; add.onkeydown=ev=>ev.stopPropagation(); tg.appendChild(add);
+  m.appendChild(tg); b.append(th,m);
+  const open=()=>{const files=libRescue(it); if(!files.length){toast('이 악보는 파일이 남아 있지 않아 열 수 없어요');return} openFiles(files)};
+  b.onclick=open; b.onkeydown=e=>{if(e.target===b&&(e.key==='Enter'||e.key===' ')){e.preventDefault();open()}};
+  return b;
+}
+function hTagEdit(it,box,btn){
+  const inp=document.createElement('input'); inp.className='htagin'; inp.placeholder='예: 잔잔, 봄 (쉼표로 구분)'; inp.maxLength=40; inp.setAttribute('aria-label','태그 추가');
+  inp.onclick=ev=>ev.stopPropagation(); btn.replaceWith(inp); inp.focus(); let done=false;
+  const save=async()=>{if(done)return;done=true; const add=inp.value.split(/[,\s]+/).map(t=>t.replace(/^#/,'').trim().slice(0,10)).filter(Boolean);
+    if(add.length){await libUpdate(it.id,x=>{x.tags=[...new Set([...(x.tags||[]),...add])].slice(0,8)}); if(AI.on)aiRun()} hRender()};
+  inp.onkeydown=e=>{e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();save()}else if(e.key==='Escape'){done=true;hRender()}}; inp.onblur=save;
+}
+function hChips(){
+  const box=$('#hqChips'); if(box.dataset.done)return; box.dataset.done='1';
+  ['쉬운 곡','잔잔한 곡','봄 느낌','기타연주곡','코드 4개 이하'].forEach(t=>{const b=el('button','hchip',t); b.type='button'; b.onclick=()=>{$('#hqIn').value=t;H.q=t;H.searching=true;hRender()}; box.appendChild(b)});
+}
+function hFilters(){
+  const box=$('#hqFilters'); box.innerHTML='';
+  const mk=(t,on,fn)=>{const b=el('button','hchip'+(on?' on':''),t); b.type='button'; b.onclick=fn; return b};
+  box.appendChild(mk('전체',!H.lvl&&!H.tag&&!H.key&&H.folder==null,()=>{H.lvl=H.tag=H.key='';H.folder=null;hRender()}));
+  box.appendChild(mk('쉬운 곡',H.lvl==='easy',()=>{H.lvl=H.lvl==='easy'?'':'easy';hRender()}));
+  const sel=(label,cur,opts,set)=>{ if(!opts.length)return; const s=document.createElement('select'); s.className='hchip'+(cur?' on':''); s.setAttribute('aria-label',label);
+    s.appendChild(new Option(label+(cur?'':''),'')); opts.forEach(o=>s.appendChild(new Option(o[1],o[0]))); s.value=cur; s.onchange=()=>{set(s.value);hRender()}; box.appendChild(s)};
+  const tags=[...new Set(H.items.flatMap(x=>x.tags||[]))].sort(), keys=[...new Set(H.items.map(x=>x.idx&&x.idx.key).filter(Boolean))].sort();
+  sel('내 태그',H.tag,tags.map(t=>[t,'#'+t]),v=>H.tag=v); sel('키',H.key,keys.map(k=>[k,k+' 키']),v=>H.key=v);
+  const fl=folders(); if(fl.length){const s=document.createElement('select'); s.className='hchip'+(H.folder!=null?' on':''); s.setAttribute('aria-label','폴더'); s.appendChild(new Option('폴더','')); s.appendChild(new Option('미분류','\u0000')); fl.forEach(f=>s.appendChild(new Option(f,f))); s.value=H.folder==null?'':(H.folder===''?'\u0000':H.folder); s.onchange=()=>{H.folder=s.value===''?null:(s.value==='\u0000'?'':s.value);hRender()}; box.appendChild(s)}
+}
+function hAIcard(unmatched){
+  const box=$('#hqAI'); if(unmatched!==undefined)box.dataset.un=(unmatched||[]).join(' ');
+  const un=box.dataset.un||''; box.innerHTML='';
+  if(AI.loading){const c=el('div','hcard'); c.append(el('span',null,'말로 찾기 준비 중… '+AI.pct+'%  (처음 한 번만 내려받아요)')); const bar=el('div','hbar'),i=document.createElement('i'); i.style.width=AI.pct+'%'; bar.appendChild(i); c.appendChild(bar); box.appendChild(c); return}
+  if(AI.on&&AI.embBusy&&AI.embTotal){const c=el('div','hcard'); c.append(el('span',null,'악보의 뜻을 정리하는 중… ('+Math.min(AI.embDone+1,AI.embTotal)+'/'+AI.embTotal+')')); box.appendChild(c); return}
+  if(AI.err){const c=el('div','hcard'); c.append(el('span',null,AI.err)); const b=el('button','btn sm pink','다시 시도'); b.type='button'; b.onclick=aiEnable; c.appendChild(b); box.appendChild(c); return}
+  if(un&&!AI.on){
+    const c=el('div','hcard'); c.append(el('span',null,'"'+un+'"은(는) 악보에 적혀 있지 않아요. 말로 찾기를 켜면 뜻이 비슷한 곡을 찾아 줘요. 처음 한 번 약 140MB를 내려받고, 그다음부터는 인터넷 없이도 돼요.'));
+    const b=el('button','btn sm pink','말로 찾기 켜기'); b.type='button'; b.onclick=aiEnable; c.appendChild(b); box.appendChild(c);
+  }
+}
+function hNote(r){
+  const n=$('#hqNote'); n.innerHTML=''; const idx=n.dataset.idx; const sp=$('#landing').classList.contains('searching');
+  if(idx)n.appendChild(el('div',null,idx));
+  if(!sp){
+    n.appendChild(el('div',null,'악보 파일을 이 화면에 끌어다 놓거나 + 를 눌러 추가할 수 있어요'));
+    n.appendChild(el('div',null,'검색은 내 기기 안에서만 이뤄져요 · 악보와 가사는 밖으로 나가지 않아요'));
+    if(!AI.on&&!AI.loading){const d=el('div'),b=el('button',null,'말로 찾기 켜기 (분위기·뜻으로 찾기)'); b.type='button'; b.onclick=aiEnable; d.appendChild(b); n.appendChild(d)}
+  }else if(r&&r.list&&r.list.length===0&&H.q.trim()){
+    const d=el('div'),b=el('button',null,'"'+H.q.trim()+'" 제목으로 인터넷에서 찾아보기 ↗'); b.type='button'; b.onclick=()=>window.open('https://www.google.com/search?q='+encodeURIComponent(H.q.trim()+' 악보 코드'),'_blank','noopener'); d.appendChild(b); n.appendChild(d);
+  }else if(sp&&r&&r.list&&r.list.length){
+    const d=el('div'),b=el('button',null,'찾는 곡이 없나요? 제목으로 인터넷에서 찾아보기 ↗'); b.type='button'; b.onclick=()=>window.open('https://www.google.com/search?q='+encodeURIComponent(H.q.trim()+' 악보 코드'),'_blank','noopener'); d.appendChild(b); n.appendChild(d);
+  }
+}
+let hT; const hDebounce=()=>{clearTimeout(hT);hT=setTimeout(hRender,120)};
+$('#hqIn').addEventListener('input',e=>{H.q=e.target.value;if(!H.q.trim()&&!H.lvl&&!H.tag&&!H.key&&H.folder==null)H.searching=false;hDebounce()});
+$('#hqIn').addEventListener('keydown',e=>{e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();H.searching=true;hRender()}else if(e.key==='Escape'){hClear()}});
+function hClear(){H.q='';H.lvl=H.tag=H.key='';H.folder=null;H.searching=false;$('#hqIn').value='';hRender()}
+$('#hqClear').onclick=()=>{hClear();$('#hqIn').focus()};
+$('#hqGo').onclick=()=>{H.searching=true;hRender()};
+$('#hqScope').onclick=openLib;
+$('#hqAdd').onclick=()=>$('#fileAdd').click();
+$('#fileAdd').onchange=async e=>{const fl=[...e.target.files]; e.target.value=''; if(fl.length){await libAddFiles(fl,''); H.searching=true; hRender()}};
+function homeAfterAdd(){idxRun(); hRender()}
+window.__homeReady=true;
+function homeShown(){hRender(); idxRun(); if(store.get('nm-ai','')&&!AI.on&&!AI.loading&&!AI.err)aiEnable()}
+
+if($('#landing').style.display!=='none')homeShown();
 </script>
 </body>
 </html>
