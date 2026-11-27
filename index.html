@@ -1191,7 +1191,7 @@ async function pdfTextChords(page){ // 글자가 들어 있는 PDF → 정확한
 }
 async function ocrChords(canvas){ // 스캔본·이미지 → 글자 인식(OCR)
   if(!window.Tesseract){const e=new Error('Tesseract 없음');e.net=true;throw e}
-  const res=await Tesseract.recognize(canvas,'eng',{logger:m=>{if(m.status==='recognizing text')setDetect('코드를 읽는 중… '+Math.round(m.progress*100)+'%')}});
+  const res=await Tesseract.recognize(canvas,'eng',{logger:m=>{if(m.status==='recognizing text')setDetect('키 변경중 '+Math.round(m.progress*100)+'%')}});
   const d=res.data, lines=d.lines||(d.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[])), out=[];
   lines.forEach((ln,i)=>{
     const toks=(ln.words||[]).filter(w=>w.text.trim()).map(w=>({s:w.text.trim(),x0:w.bbox.x0,x1:w.bbox.x1,y0:w.bbox.y0,y1:w.bbox.y1,conf:w.confidence}));
@@ -1223,7 +1223,7 @@ function autoKey(chords){
 async function keyOverlay(tok){
   const key=ckey();
   if(!S.keyCache[key]){
-    setDetect('코드를 찾는 중이에요… (이미지는 몇 초 걸려요)');
+    setDetect('키 변경중 0%');
     try{S.keyCache[key]=await detectChords(S.page)}
     catch(e){console.error(e);S.keyCache[key]=[];
       const msg=String((e&&e.message)||e), sand=/SecurityError|Failed to construct 'Worker'|cannot be accessed from origin/i.test(msg), net=!sand&&(e&&e.net||/network|fetch|load|import|worker|traineddata|wasm/i.test(msg));
