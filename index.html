@@ -916,7 +916,7 @@ $('#recBtn').onclick=()=>R.on?stopRec():startRec();
 $d('#dockRec').onclick=()=>R.on?stopRec():startRec();
 function addTake(blob,dur,type){
   const ext=/mp4/.test(type)?'m4a':'webm';
-  R.takes.unshift({id:Date.now(),url:URL.createObjectURL(blob),blob,dur,name:'녹음 '+(++R.n),page:R.page,ext}); renderTakes();
+  const t={id:Date.now(),url:URL.createObjectURL(blob),blob,dur,name:'녹음 '+(++R.n),page:R.page,ext}; R.takes.unshift(t); renderTakes(); saveTake(t);
 }
 function renderTakes(){
   const ul=$('#takeList'); ul.innerHTML='';
@@ -929,7 +929,7 @@ function renderTakes(){
     li.querySelector('audio').src=t.url;
     li.querySelector('[data-a=cut]').onclick=()=>openTrim(t);
     li.querySelector('[data-a=dl]').onclick=()=>{const a=document.createElement('a');a.href=t.url;a.download=t.name+'.'+t.ext;a.click()};
-    li.querySelector('[data-a=del]').onclick=()=>{URL.revokeObjectURL(t.url);R.takes=R.takes.filter(x=>x!==t);renderTakes()};
+    li.querySelector('[data-a=del]').onclick=()=>{if(!confirm('"'+t.name+'" 녹음을 지울까요? 되돌릴 수 없어요.'))return;URL.revokeObjectURL(t.url);R.takes=R.takes.filter(x=>x!==t);takeTx('readwrite',st=>st.delete(t.id)).catch(()=>{});renderTakes()};
     ul.appendChild(li);
   });
 }
@@ -982,7 +982,7 @@ function trimApply(keep){
   const seg=(f,t)=>ch.map(c=>c.subarray(f,t)), parts=keep?[seg(a,z)]:[seg(0,a),seg(z,n)].filter(p=>p[0].length);
   if(!parts.length||parts.every(p=>!p[0].length)){$('#trimMsg').textContent='남는 소리가 없어요. 구간을 다시 골라 주세요';return}
   const blob=bufToWav(parts,b.sampleRate,nch), dur=parts.reduce((s,p)=>s+p[0].length,0)/b.sampleRate;
-  R.takes.unshift({id:Date.now(),url:URL.createObjectURL(blob),blob,dur,name:TR.t.name+' (잘라냄)',page:TR.t.page,ext:'wav'});
+  const nt={id:Date.now(),url:URL.createObjectURL(blob),blob,dur,name:TR.t.name+' (잘라냄)',page:TR.t.page,ext:'wav'}; R.takes.unshift(nt); saveTake(nt);
   renderTakes(); $('#trimDlg').style.display='none'; toast('잘라서 새 녹음으로 저장했어요. 원본은 그대로 있어요');
 }
 $('#trimKeep').onclick=()=>trimApply(true); $('#trimDel').onclick=()=>trimApply(false);
@@ -1405,9 +1405,24 @@ $('#saveKeyPdf').onclick=exportKeyPdf;
 
 /* ---------- 내 악보함 (이 브라우저의 IndexedDB에 저장) ---------- */
 let _db,libWarned=false;
-const libDB=()=>_db||(_db=new Promise((res,rej)=>{const r=indexedDB.open('neomgyeo',1);r.onupgradeneeded=()=>r.result.createObjectStore('scores',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
+const libDB=()=>_db||(_db=new Promise((res,rej)=>{const r=indexedDB.open('neomgyeo',2);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('scores'))d.createObjectStore('scores',{keyPath:'id'});if(!d.objectStoreNames.contains('takes'))d.createObjectStore('takes',{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
 const libTx=(mode,fn)=>libDB().then(db=>new Promise((res,rej)=>{const t=db.transaction('scores',mode),q=fn(t.objectStore('scores'));t.oncomplete=()=>res(q&&q.result);t.onerror=t.onabort=()=>rej(t.error)}));
 const libGet=id=>libTx('readonly',st=>st.get(id)), libPut=it=>libTx('readwrite',st=>st.put(it)), libDel=id=>libTx('readwrite',st=>st.delete(id)), libAll=()=>libTx('readonly',st=>st.getAll());
+const takeTx=(mode,fn)=>libDB().then(db=>new Promise((res,rej)=>{const t=db.transaction('takes',mode),q=fn(t.objectStore('takes'));t.oncomplete=()=>res(q&&q.result);t.onerror=t.onabort=()=>rej(t.error)}));
+let takeWarned=false;
+function saveTake(t){ // 녹음을 이 브라우저에 저장 (새로고침해도 남아요)
+  return takeTx('readwrite',st=>st.put({id:t.id,name:t.name,page:t.page,dur:t.dur,ext:t.ext,blob:t.blob,at:t.id})).catch(e=>{console.warn(e);if(!takeWarned){takeWarned=true;toast('녹음을 보관하지 못했어요. 이 창을 닫으면 사라질 수 있어요. 꼭 저장 버튼으로 내려받아 두세요',4200)}});
+}
+async function loadTakes(){
+  try{
+    const all=(await takeTx('readonly',st=>st.getAll()))||[];
+    all.sort((a,b)=>b.id-a.id);
+    R.takes=all.filter(t=>t.blob).map(t=>({id:t.id,name:t.name,page:t.page,dur:t.dur,ext:t.ext,blob:t.blob,url:URL.createObjectURL(t.blob)}));
+    R.n=Math.max(R.n,...R.takes.map(t=>+((t.name.match(/^녹음 (\d+)/)||[])[1])||0));
+  }catch(e){console.warn(e)}
+  renderTakes();
+}
+(function askPersist(){try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(_){}})(); // 브라우저가 저장공간을 임의로 비우지 않도록 요청
 S.libId=null; S.libView=null;
 async function libOnOpen(files){ // 열 때마다 악보함에 넣고, 이미 있으면 보던 쪽으로 돌아가요
   S.libId=null;
@@ -1624,7 +1639,7 @@ $('#folderDlg').addEventListener('click',e=>{if(e.target.id==='folderDlg')closeF
 $('#libModal').addEventListener('click',e=>{if(e.target.id==='libModal')closeLib()});
 
 /* ---------- 시작 ---------- */
-applyMode(); syncVoice(); renderTakes(); applyView(); refreshResume();
+applyMode(); syncVoice(); loadTakes(); applyView(); refreshResume();
 
 </script>
 </body>
