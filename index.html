@@ -44,27 +44,28 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16p
 .btn.sm{padding:6px 14px;font-size:13px;border-radius:999px}
 .btn[disabled]{opacity:.4;cursor:not-allowed}
 main{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
-@media (min-width:901px){main{margin-left:84px}main.recOnly{margin-left:0}}
+
 .card{background:var(--card);border-radius:var(--r);border:1px solid var(--line);padding:16px 18px}
 .card h3{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:6px;text-transform:none}
-.side{position:fixed;z-index:30;left:84px;top:96px;width:min(380px,calc(100vw - 96px));max-height:calc(100vh - 110px);overflow:auto;display:none;flex-direction:column;gap:14px;padding:8px 22px 32px 8px;scrollbar-width:none}
+.side{position:fixed;z-index:30;right:12px;top:92px;width:min(380px,calc(100vw - 24px));max-height:calc(100vh - 106px);overflow:auto;display:none;flex-direction:column;gap:14px;padding:8px 8px 32px 22px;scrollbar-width:none}
 .side.open{display:flex;animation:hin .3s var(--ease) backwards}
 .side>.card{display:none;box-shadow:0 10px 28px rgba(0,0,0,.14);border-color:var(--line2)}
 .side>.card.act{display:block}
 .sideX{position:absolute;right:38px;top:20px;z-index:2;width:30px;height:30px;border-radius:50%;border:0;background:#f1f1ee;color:#555;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .sideX:hover{background:#e6e6e2}
 .side>.card{position:relative}
-#tools{position:fixed;z-index:31;left:16px;top:104px;display:flex;flex-direction:column;gap:10px;width:64px}
-#tools .tl{position:relative;width:64px;border:0;background:#fff;border-radius:18px;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#555;font:inherit;font-size:11px;font-weight:600;cursor:pointer;box-shadow:0 1px 0 rgba(0,0,0,.04);transition:background .2s,color .2s,transform .1s}
-#tools .tl svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#tools{position:relative;z-index:31;display:flex;flex-direction:row;gap:2px;background:#fff;border-radius:999px;padding:8px}
+#tools .tl{position:relative;height:44px;border:0;background:transparent;border-radius:999px;padding:0 16px 0 12px;display:flex;flex-direction:row;align-items:center;gap:6px;white-space:nowrap;color:#555;font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,color .2s,transform .1s}
+#tools .tl svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 #tools .tl:hover{background:#f6f6f3;color:var(--ink)}#tools .tl:active{transform:scale(.96)}
 #tools .tl.on{background:var(--ink);color:#fff}
 #tools .tl:focus-visible{outline:3px solid var(--red);outline-offset:2px}
-#tools .tl.live::after{content:'';position:absolute;top:8px;right:12px;width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1.3s ease-in-out infinite}
+#tools .tl.live::after{content:'';position:absolute;top:7px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1.3s ease-in-out infinite}
 @media (max-width:900px){
- #tools{top:auto;bottom:0;left:0;right:0;width:auto;flex-direction:row;justify-content:space-around;gap:6px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:rgba(245,245,243,.94);backdrop-filter:blur(8px);border-top:1px solid var(--line2)}
- #tools .tl{flex:1;width:auto;max-width:96px;padding:8px 0 6px;border-radius:14px}
- .side{left:12px;right:12px;top:auto;bottom:84px;width:auto;max-height:62vh}
+ #tools{position:fixed;border-radius:0;top:auto;bottom:0;left:0;right:0;width:auto;flex-direction:row;justify-content:space-around;gap:6px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:rgba(245,245,243,.94);backdrop-filter:blur(8px);border-top:1px solid var(--line2)}
+ #tools .tl{flex:1;width:auto;max-width:96px;height:auto;padding:8px 0 6px;border-radius:14px;flex-direction:column;gap:4px;font-size:11px}
+ #tools .tl svg{width:24px;height:24px}
+ .side{left:12px;right:12px;top:auto;bottom:84px;width:auto;max-height:62vh;padding:8px 22px 32px 8px}
  .app{padding-bottom:96px}
 }
 
@@ -494,11 +495,10 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
 #setList li.before::before{top:-8px}#setList li.after::after{bottom:-8px}
 @media (min-width:901px){main.hasSet{grid-template-columns:230px minmax(0,1fr)}}
 @media (max-width:900px){#setSide{height:auto;min-height:0}#setList{flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:14px;padding:6px 4px 10px}#setList li{width:104px}#setList li.before::before,#setList li.after::after{top:0;bottom:0;width:4px;height:auto;left:auto;right:auto}#setList li.before::before{left:-9px}#setList li.after::after{right:-9px}}
-#keyHint{position:fixed;z-index:60;transform:translateY(-50%);background:#0a0a0a;color:#fff;font-size:13px;padding:8px 12px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .35s var(--ease);white-space:nowrap}
-#keyHint.m{transform:none}
+#keyHint{position:fixed;z-index:60;background:#0a0a0a;color:#fff;font-size:13px;padding:8px 12px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .35s var(--ease);white-space:nowrap}
 #keyHint.show{opacity:1}
-#keyHint::before{content:'';position:absolute;left:-5px;top:50%;margin-top:-5px;border:5px solid transparent;border-left:0;border-right-color:#0a0a0a}
-#keyHint.m::before{left:16px;top:auto;bottom:-5px;margin:0;border:5px solid transparent;border-bottom:0;border-top-color:#0a0a0a}
+#keyHint::before{content:'';position:absolute;left:22px;top:-5px;border:5px solid transparent;border-top:0;border-bottom-color:#0a0a0a}
+#keyHint.m::before{top:auto;bottom:-5px;border:5px solid transparent;border-bottom:0;border-top-color:#0a0a0a}
 </style>
 </head>
 <body>
@@ -512,6 +512,12 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
     <button type="button" class="hl" id="tabRec">녹음함</button>
   </nav>
   <div class="spacer"></div>
+  <nav id="tools" aria-label="도구" style="display:none">
+    <button type="button" class="tl" id="toolKey" data-tool="key" aria-label="키 바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 20V5M4 9l4-4 4 4M16 4v15M12 15l4 4 4-4"/></svg><span>키</span></button>
+    <button type="button" class="tl" id="toolMet" data-tool="met" aria-label="메트로놈"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5L9 3z"/><path d="M12 17l4-9"/></svg><span>메트로놈</span></button>
+    <button type="button" class="tl" id="toolRec" data-tool="rec" aria-label="녹음"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>녹음</span></button>
+    <button type="button" class="tl" id="toolTurn" data-tool="turn" aria-label="넘기는 방법"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg><span>넘기는 법</span></button>
+  </nav>
   <button class="btn" id="textModeBtn" style="display:none">코드 텍스트 입력</button>
   <span id="listenPill"><i><b></b><b></b><b></b><b></b></i><span id="pillTxt">듣는 중</span></span>
   <button class="btn" id="libBtn">내 악보함</button>
@@ -542,12 +548,6 @@ kbd{background:var(--g1);border:1px solid var(--line2);border-radius:5px;padding
   </div>
 </section>
 
-<nav id="tools" aria-label="도구" style="display:none">
-  <button type="button" class="tl" id="toolKey" data-tool="key" aria-label="키 바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 20V5M4 9l4-4 4 4M16 4v15M12 15l4 4 4-4"/></svg><span>키</span></button>
-  <button type="button" class="tl" id="toolMet" data-tool="met" aria-label="메트로놈"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5L9 3z"/><path d="M12 17l4-9"/></svg><span>메트로놈</span></button>
-  <button type="button" class="tl" id="toolRec" data-tool="rec" aria-label="녹음"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>녹음</span></button>
-  <button type="button" class="tl" id="toolTurn" data-tool="turn" aria-label="넘기는 방법"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg><span>넘기는 법</span></button>
-</nav>
 <div id="keyHint" role="status">키를 바꾸고 싶으면 여기를 눌러요</div>
 <main>
   <aside id="setSide" class="card" aria-label="악보 순서" style="display:none">
@@ -829,7 +829,7 @@ function afterOpen(){
 function keyHint(){ // 처음 악보를 열면 키 아이콘 옆에 한 번만 알려줘요
   try{if(store.get('nm-keyhint','')||S.tab==='home')return}catch(e){return}
   setTimeout(()=>{const b=$('#toolKey'),h=$('#keyHint'); if(!b||!h||b.offsetParent===null||S.tool)return;
-    const r=b.getBoundingClientRect(),m=innerWidth<901; h.style.left=m?Math.max(8,r.left-4)+'px':(r.right+12)+'px'; h.style.top=m?'auto':(r.top+r.height/2)+'px'; h.style.bottom=m?(innerHeight-r.top+12)+'px':'auto'; h.classList.toggle('m',m); h.classList.add('show'); store.set('nm-keyhint','1');
+    const r=b.getBoundingClientRect(),m=innerWidth<901; h.style.left=Math.max(8,m?r.left-4:r.left)+'px'; h.style.top=m?'auto':(r.bottom+12)+'px'; h.style.bottom=m?(innerHeight-r.top+12)+'px':'auto'; h.classList.toggle('m',m); h.classList.add('show'); store.set('nm-keyhint','1');
     clearTimeout(keyHint._t); keyHint._t=setTimeout(()=>h.classList.remove('show'),6000)},700);
 }
 
